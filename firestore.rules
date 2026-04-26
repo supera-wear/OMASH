@@ -1,0 +1,44 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'email', 'points']) &&
+             data.uid is string &&
+             data.email is string &&
+             data.points is number && data.points >= 0;
+    }
+
+    function isValidOrder(data) {
+      return data.keys().hasAll(['userId', 'items', 'totalPrice', 'pointsEarned', 'createdAt', 'status']) &&
+             data.userId == request.auth.uid &&
+             data.items is list &&
+             data.totalPrice is number &&
+             data.pointsEarned is number &&
+             data.status in ['pending', 'completed', 'cancelled'];
+    }
+
+    // User profiles
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUser(request.resource.data) && request.resource.data.points == 0;
+      allow update: if isOwner(userId) && isValidUser(request.resource.data);
+    }
+
+    // Orders
+    match /orders/{orderId} {
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated() && isValidOrder(request.resource.data);
+      allow update, delete: if false; // Orders are immutable for users
+    }
+  }
+}

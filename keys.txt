@@ -1,0 +1,36 @@
+          key={currentSlide}
+            key={slides[currentSlide].image}
+              key={currentSlide}
+            key={index}
+                      <span key={i} className="px-3 py-1.5 bg-gray-100 rounded-lg text-xs font-bold text-gray-600">
+                          key={drink.id}
+                          key={extra.id}
+                  <div key={item.day} className="flex justify-between items-center p-3 rounded-xl bg-gray-50 border border-gray-100">
+              key={`allergen-grid-${allergen}-${i}`}
+                  key={cat}
+                key={activeCategory}
+                    key={`menu-section-${item.id}`}
+                      key={item.image}
+                              key={`fullmenu-allergen-${item.id}-${allergen}-${i}`}
+              key={`feature-${i}`}
+                      <div key={key} className="flex items-center gap-3 p-4 bg-brand-white rounded-2xl border border-gray-100">
+                <div key={i} className={cn("flex", msg.isUser ? "justify-end" : "justify-start")}>
+                <li key={link.label}>
+                <li key={link.label}>
+                <li key={link.label}>
+            <div key={store.name} className="bg-brand-white border border-gray-100 p-8 rounded-3xl hover:shadow-xl transition-all group">
+            <div key={faq.qEn} className="bg-white border border-gray-100 p-6 rounded-2xl">
+                <div key={item.id} className="bg-white p-6 rounded-3xl border border-gray-100 flex gap-4 hover:shadow-xl transition-all group">
+                <div key={loc.id} className="bg-white p-8 rounded-3xl border border-gray-100 hover:shadow-xl transition-all">
+                <div key={faq.id} className="bg-white p-6 rounded-3xl border border-gray-100">
+                key={f.id}
+            key={activeFilter}
+                key={`full-menu-${item.id}`} 
+                              key={`full-allergen-${item.id}-${allergen}-${i}`}
+            <div key={item.id} className="bg-white rounded-[2.5rem] overflow-hidden border border-gray-100 shadow-xl hover:shadow-2xl transition-all group">
+              key={key}
+                    <div key={order.id} className="bg-gray-50 rounded-2xl p-6 border border-gray-100 hover:border-brand-red/20 transition-all group">
+                          <div key={idx} className="bg-white px-3 py-1.5 rounded-lg border border-gray-100 text-xs font-bold flex flex-col gap-1">
+                  key={loc.id}
+                      <div key={item.cartId} className="flex gap-4">
+                                <div key={idx} className="flex justify-between items-center text-[11px] text-gray-600 font-bold bg-gray-50 px-2 py-1 rounded-lg border border-gray-100/50">

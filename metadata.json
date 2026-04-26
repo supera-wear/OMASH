@@ -1,0 +1,8 @@
+{
+  "name": "OMASH - Are You Hungry?",
+  "description": "A premium, high-converting website for OMASH, a bold and modern fast-food brand specializing in ultimate smash burgers and loaded sides.",
+  "requestFramePermissions": [
+    "geolocation"
+  ],
+  "majorCapabilities": []
+}
