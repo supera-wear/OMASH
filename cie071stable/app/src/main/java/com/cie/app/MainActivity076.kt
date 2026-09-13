@@ -168,7 +168,7 @@ private fun Cie076ShieldScreen(
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(bottom = 112.dp),
+        contentPadding = PaddingValues(bottom = 20.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         item { Cie076Hero(callRole, loading, onSettings) }
