@@ -30,40 +30,23 @@ data class MessageDecision(
 )
 
 /**
- * Permission-free Message Shield core.
+ * Permission-free Message Shield policy engine.
  *
- * This class does not read SMS from Android. It only evaluates a supplied sender/body pair.
- * That lets CIE prove the identity -> company -> user policy -> action path without requesting
- * READ_SMS / RECEIVE_SMS / SEND_SMS in the stable sideload line.
+ * Sender identities are supplied by IdentityNetworkStore, which caches verified
+ * company identity signals from the CIE backend. This class never reads Android SMS.
  */
 object MessageShieldEngine {
     private const val MIN_IDENTITY_CONFIDENCE = 0.95
 
-    // Bootstrap snapshot of verified message-relevant identity signals already present in CIE.
-    // Remote message-cache sync can replace/extend this list later without changing policy logic.
-    private val bootstrapSignals = listOf(
-        MessageIdentitySignal(
-            signalType = "phone",
-            normalizedValue = "+905551110001",
-            companyId = "00000000-0000-4000-8000-000000000001",
-            companyName = "DemoTel",
-            confidence = 0.995
-        ),
-        MessageIdentitySignal(
-            signalType = "sender_id",
-            normalizedValue = "demotel",
-            companyId = "00000000-0000-4000-8000-000000000001",
-            companyName = "DemoTel",
-            confidence = 0.995
-        )
-    )
-
-    fun evaluate(repo: StableRepository, sender: String, body: String): MessageDecision {
+    fun evaluate(
+        repo: StableRepository,
+        identityNetwork: IdentityNetworkStore,
+        sender: String,
+        body: String
+    ): MessageDecision {
         val (senderType, normalizedSender) = normalizeSender(sender)
         val kind = classify(body)
-        val identity = bootstrapSignals.firstOrNull {
-            it.signalType == senderType && it.normalizedValue == normalizedSender
-        }
+        val identity = identityNetwork.resolve(senderType, normalizedSender)
 
         if (identity == null) {
             return MessageDecision(
@@ -74,7 +57,11 @@ object MessageShieldEngine {
                 identityConfidence = null,
                 kind = kind,
                 blocked = false,
-                reason = "Sender is not yet linked to a verified company. CIE fails open."
+                reason = if (identityNetwork.isFresh()) {
+                    "Sender is not linked to a verified company. CIE fails open."
+                } else {
+                    "Identity Network cache is not synced or is stale. CIE fails open."
+                }
             )
         }
 
@@ -87,7 +74,7 @@ object MessageShieldEngine {
                 identityConfidence = identity.confidence,
                 kind = kind,
                 blocked = false,
-                reason = "Company match is below the blocking threshold. CIE fails open."
+                reason = "Company match is below the Message Shield action threshold. CIE fails open."
             )
         }
 
@@ -112,11 +99,13 @@ object MessageShieldEngine {
                 identityConfidence = identity.confidence,
                 kind = kind,
                 blocked = false,
-                reason = "Security and transactional messages are preserved in CIE Stable."
+                reason = "Security and transactional messages are preserved."
             )
         }
 
-        val shouldBlock = kind == MessageKind.MARKETING && company.blockMarketingSms
+        val shouldBlock = kind == MessageKind.MARKETING &&
+            repo.shouldBlockCompany(company.id, CommunicationChannel.MARKETING_SMS)
+
         return MessageDecision(
             senderType = senderType,
             normalizedSender = normalizedSender,
@@ -128,7 +117,7 @@ object MessageShieldEngine {
             reason = when {
                 shouldBlock -> "Marketing sender belongs to ${company.name}, and that company is blocked."
                 kind == MessageKind.MARKETING -> "Marketing sender belongs to ${company.name}, but that company is allowed."
-                else -> "Sender belongs to ${company.name}; this message type stays allowed in Stable."
+                else -> "Sender belongs to ${company.name}; this message type remains allowed."
             }
         )
     }
