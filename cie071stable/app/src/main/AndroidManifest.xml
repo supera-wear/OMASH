@@ -5,10 +5,20 @@
         android:allowBackup="false"
         android:icon="@drawable/ic_cie"
         android:roundIcon="@drawable/ic_cie"
-        android:label="CIE 0.7.3"
+        android:label="CIE 0.7.4"
         android:supportsRtl="true"
         android:theme="@style/Theme.CIE"
         android:usesCleartextTraffic="false">
+
+        <activity
+            android:name=".MessageShieldLabActivity"
+            android:exported="true"
+            android:label="CIE Message Lab">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
 
         <activity android:name=".MainActivity" android:exported="true">
             <intent-filter>
