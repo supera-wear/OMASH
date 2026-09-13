@@ -7,18 +7,22 @@ plugins {
 val cieApiBaseUrl = providers.gradleProperty("CIE_API_BASE_URL")
     .orElse("https://br-sparkling-dream-b1q8x3n5-cieapi.compute.c-5.eu-central-1.aws.neon.tech")
     .get()
+val cieIdentityBaseUrl = providers.gradleProperty("CIE_IDENTITY_BASE_URL")
+    .orElse("https://br-sparkling-dream-b1q8x3n5-cieidentity.compute.c-5.eu-central-1.aws.neon.tech")
+    .get()
 
 android {
     namespace = "com.cie.app"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.cie.app.stable074"
+        applicationId = "com.cie.app.stable075"
         minSdk = 29
         targetSdk = 36
-        versionCode = 12
-        versionName = "0.7.4"
+        versionCode = 13
+        versionName = "0.7.5"
         buildConfigField("String", "CIE_API_BASE_URL", "\"$cieApiBaseUrl\"")
+        buildConfigField("String", "CIE_IDENTITY_BASE_URL", "\"$cieIdentityBaseUrl\"")
     }
 
     compileOptions {
