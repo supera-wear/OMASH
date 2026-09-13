@@ -1,8 +1,8 @@
-name: CIE 0.9.2 Temporary Android Build
+name: CIE 0.9.3 Full Temporary Android Build
 
 on:
   push:
-    branches: [cie-build-temp-092]
+    branches: [cie-build-temp-093-full]
   workflow_dispatch:
 
 permissions:
@@ -33,22 +33,25 @@ jobs:
       - name: Install Android API 36
         run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
 
-      - name: Build CIE 0.9.2 APK
+      - name: Build CIE 0.9.3 Full APK
         working-directory: cie092
-        run: gradle :app:assembleDebug --stacktrace
+        run: gradle :app:assembleDebug --stacktrace -PCIE_API_BASE_URL=https://br-sparkling-dream-b1q8x3n5-cieapi.compute.c-5.eu-central-1.aws.neon.tech -PCIE_MESSAGE_API_BASE_URL=https://br-sparkling-dream-b1q8x3n5-cieapi.compute.c-5.eu-central-1.aws.neon.tech
 
       - name: Verify APK package
         run: |
           APK=cie092/app/build/outputs/apk/debug/app-debug.apk
+          AAPT2="$ANDROID_HOME/build-tools/36.0.0/aapt2"
+          APKSIGNER="$ANDROID_HOME/build-tools/36.0.0/apksigner"
           test -s "$APK"
           unzip -t "$APK" >/dev/null
-          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose "$APK"
+          "$AAPT2" dump badging "$APK" | grep -q "package: name='com.cie.app' versionCode='13' versionName='0.9.3'"
+          "$APKSIGNER" verify --verbose --print-certs "$APK"
           sha256sum "$APK"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: CIE-0.9.2-Installable-APK
+          name: CIE-0.9.3-Full-Beta-APK
           path: cie092/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 2
