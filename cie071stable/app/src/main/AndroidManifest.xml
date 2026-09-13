@@ -3,8 +3,8 @@
 
     <application
         android:allowBackup="false"
-        android:icon="@drawable/ic_cie"
-        android:roundIcon="@drawable/ic_cie"
+        android:icon="@drawable/cie_shield_app_icon"
+        android:roundIcon="@drawable/cie_shield_app_icon"
         android:label="CIE Shield"
         android:supportsRtl="true"
         android:theme="@style/Theme.CIE"
