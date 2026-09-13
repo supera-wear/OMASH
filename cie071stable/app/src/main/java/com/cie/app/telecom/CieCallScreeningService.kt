@@ -4,29 +4,33 @@ import android.telecom.Call
 import android.telecom.CallScreeningService
 import com.cie.app.StableRepository
 
-/** Local-only call decision path. Unknown and stale identities always fail open. */
+/**
+ * Local-only decision path.
+ * Identity resolves the caller to a company; the user's company policy decides block/allow.
+ * Unknown, stale or ambiguous identities always fail open.
+ */
 class CieCallScreeningService : CallScreeningService() {
     override fun onScreenCall(callDetails: Call.Details) {
         val number = callDetails.handle?.schemeSpecificPart.orEmpty()
         val repo = StableRepository(applicationContext)
-        val (block, entry) = repo.lookupCall(number)
+        val decision = repo.decideCall(number)
 
         runCatching {
             repo.recordCallEvent(
-                companyName = entry?.companyName ?: StableRepository.maskPhone(number),
-                blocked = block,
-                confidence = entry?.confidence
+                companyName = decision.label,
+                blocked = decision.block,
+                confidence = decision.resolution?.confidence
             )
         }
 
         respondToCall(
             callDetails,
             CallResponse.Builder()
-                .setDisallowCall(block)
-                .setRejectCall(block)
-                .setSilenceCall(block)
+                .setDisallowCall(decision.block)
+                .setRejectCall(decision.block)
+                .setSilenceCall(decision.block)
                 .setSkipCallLog(false)
-                .setSkipNotification(block)
+                .setSkipNotification(decision.block)
                 .build()
         )
     }
