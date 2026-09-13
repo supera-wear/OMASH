@@ -1,4 +1,4 @@
-name: CIE Shield 0.7.7 Branding Android Build
+name: CIE Shield 0.7.8 Edge-to-Edge Android Build
 
 on:
   push:
@@ -49,7 +49,7 @@ jobs:
           ! grep -q 'READ_CALL_LOG' "$MANIFEST"
           ! grep -q 'READ_CONTACTS' "$MANIFEST"
 
-      - name: Build CIE Shield 0.7.7 APK
+      - name: Build CIE Shield 0.7.8 APK
         working-directory: cie071stable
         run: gradle :app:assembleDebug --stacktrace -PCIE_API_BASE_URL=https://br-sparkling-dream-b1q8x3n5-cieapi.compute.c-5.eu-central-1.aws.neon.tech -PCIE_IDENTITY_BASE_URL=https://br-sparkling-dream-b1q8x3n5-cieidentity.compute.c-5.eu-central-1.aws.neon.tech
 
@@ -60,7 +60,7 @@ jobs:
           APKSIGNER="$ANDROID_HOME/build-tools/36.0.0/apksigner"
           test -s "$APK"
           unzip -t "$APK" >/dev/null
-          "$AAPT2" dump badging "$APK" | grep -q "package: name='com.cie.app.stable077' versionCode='15' versionName='0.7.7'"
+          "$AAPT2" dump badging "$APK" | grep -q "package: name='com.cie.app.stable078' versionCode='16' versionName='0.7.8'"
           "$AAPT2" dump badging "$APK" | grep -q "application-label:'CIE Shield'"
           "$APKSIGNER" verify --verbose --print-certs "$APK"
           ! "$AAPT2" dump permissions "$APK" | grep -E 'READ_SMS|RECEIVE_SMS|SEND_SMS|READ_CALL_LOG|READ_CONTACTS'
@@ -69,7 +69,7 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: CIE-Shield-0.7.7-Branding-APK
+          name: CIE-Shield-0.7.8-Edge-to-Edge-APK
           path: cie071stable/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 3
