@@ -13,7 +13,7 @@ class CieCallScreeningService : CallScreeningService() {
 
         runCatching {
             repo.recordCallEvent(
-                companyName = entry?.companyName,
+                companyName = entry?.companyName ?: StableRepository.maskPhone(number),
                 blocked = block,
                 confidence = entry?.confidence
             )
