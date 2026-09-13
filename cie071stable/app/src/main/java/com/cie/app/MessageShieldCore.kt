@@ -29,12 +29,7 @@ data class MessageDecision(
     val reason: String
 )
 
-/**
- * Permission-free Message Shield policy engine.
- *
- * Sender identities are supplied by IdentityNetworkStore, which caches verified
- * company identity signals from the CIE backend. This class never reads Android SMS.
- */
+/** Permission-free Message Shield policy engine backed by the CIE Identity Network cache. */
 object MessageShieldEngine {
     private const val MIN_IDENTITY_CONFIDENCE = 0.95
 
@@ -127,7 +122,8 @@ object MessageShieldEngine {
         if (text.isBlank()) return MessageKind.UNKNOWN
 
         val security = listOf(
-            "otp", "verification code", "security code", "doğrulama kodu", "dogrulama kodu",
+            "otp", "verification code", "security code", "security verification",
+            "doğrulama kodu", "dogrulama kodu", "güvenlik doğrulama", "guvenlik dogrulama",
             "tek kullanımlık", "tek kullanimlik", "şifre", "sifre", "giriş kodu", "giris kodu"
         )
         if (security.any(text::contains)) return MessageKind.SECURITY
