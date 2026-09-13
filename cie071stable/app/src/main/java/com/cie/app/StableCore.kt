@@ -38,9 +38,30 @@ data class CallEvent(
     val timestamp: Long
 )
 
+enum class CommunicationChannel {
+    CALL,
+    MARKETING_SMS
+}
+
+data class IdentityResolution(
+    val companyId: String,
+    val companyName: String,
+    val category: String,
+    val confidence: Double,
+    val signalType: String,
+    val normalizedSignal: String,
+    val syntheticTestIdentity: Boolean = false
+)
+
+data class CallDecision(
+    val block: Boolean,
+    val label: String,
+    val resolution: IdentityResolution?
+)
+
 class StableRepository(context: Context) {
     private val app = context.applicationContext
-    private val prefs = app.getSharedPreferences("cie_stable_072", Context.MODE_PRIVATE)
+    private val prefs = app.getSharedPreferences("cie_stable_073", Context.MODE_PRIVATE)
     private val api = StableApiClient(BuildConfig.CIE_API_BASE_URL, installKey())
 
     suspend fun sync(): List<CompanyRow> = withContext(Dispatchers.IO) {
@@ -78,22 +99,95 @@ class StableRepository(context: Context) {
     }
 
     /**
-     * Call decisions are intentionally local and fail-open.
-     * A high-confidence identity is only blocked when the user's company policy says blockCalls=true.
+     * Core CIE rule:
+     * Identity confidence answers WHO the sender/caller is.
+     * The user's company policy answers WHAT CIE should do with that company.
+     *
+     * Multiple phone identities can point to the same companyId. Once that company is
+     * blocked, every sufficiently verified phone identity for that company inherits
+     * the same company-level policy automatically.
      */
-    fun lookupCall(rawNumber: String?): Pair<Boolean, CallCacheEntry?> {
-        val number = normalizePhone(rawNumber.orEmpty())
-        if (number.isBlank()) return false to null
+    fun decideCall(rawNumber: String?): CallDecision {
+        val normalized = normalizePhone(rawNumber.orEmpty())
+        if (normalized.isBlank()) return CallDecision(false, "Unknown caller", null)
 
-        if (testNumber()?.let(::normalizePhone) == number) {
-            return true to CallCacheEntry(number, "cie-beta-test", "CIE Beta Test", "test", 1.0)
+        resolvePhoneIdentity(normalized)?.let { identity ->
+            if (identity.syntheticTestIdentity) {
+                return CallDecision(true, identity.companyName, identity)
+            }
+
+            val policyBlocksCompany = shouldBlockCompany(identity.companyId, CommunicationChannel.CALL)
+            val identityStrongEnoughForAction = identity.confidence >= MIN_ACTION_CONFIDENCE
+            return CallDecision(
+                block = policyBlocksCompany && identityStrongEnoughForAction,
+                label = identity.companyName,
+                resolution = identity
+            )
         }
 
-        if (!isCallCacheFresh()) return false to null
-        val match = readCallCache().firstOrNull { normalizePhone(it.phone) == number } ?: return false to null
-        val policyBlocksCalls = cachedCompanies().firstOrNull { it.id == match.companyId }?.blockCalls == true
-        val shouldBlock = policyBlocksCalls && match.confidence >= MIN_BLOCK_CONFIDENCE
-        return shouldBlock to match
+        return CallDecision(false, maskPhone(normalized), null)
+    }
+
+    /** Kept for compatibility with earlier stable call-service code. */
+    fun lookupCall(rawNumber: String?): Pair<Boolean, CallCacheEntry?> {
+        val decision = decideCall(rawNumber)
+        val resolution = decision.resolution
+        val entry = resolution?.let {
+            CallCacheEntry(
+                phone = it.normalizedSignal,
+                companyId = it.companyId,
+                companyName = it.companyName,
+                category = it.category,
+                confidence = it.confidence
+            )
+        }
+        return decision.block to entry
+    }
+
+    fun shouldBlockCompany(companyId: String, channel: CommunicationChannel): Boolean {
+        val policy = cachedCompanies().firstOrNull { it.id == companyId } ?: return false
+        return when (channel) {
+            CommunicationChannel.CALL -> policy.blockCalls
+            CommunicationChannel.MARKETING_SMS -> policy.blockMarketingSms
+        }
+    }
+
+    private fun resolvePhoneIdentity(normalized: String): IdentityResolution? {
+        if (testNumber()?.let(::normalizePhone) == normalized) {
+            return IdentityResolution(
+                companyId = "cie-beta-test",
+                companyName = "CIE Beta Test",
+                category = "test",
+                confidence = 1.0,
+                signalType = "phone",
+                normalizedSignal = normalized,
+                syntheticTestIdentity = true
+            )
+        }
+
+        if (!isCallCacheFresh()) return null
+
+        val candidates = readCallCache()
+            .filter { normalizePhone(it.phone) == normalized }
+            .sortedByDescending { it.confidence }
+        if (candidates.isEmpty()) return null
+
+        val best = candidates.first()
+        if (best.confidence < MIN_IDENTITY_CONFIDENCE) return null
+
+        // Fail open when two different companies claim the same number at nearly
+        // the same confidence. This prevents an ambiguous identity from causing a block.
+        val conflicting = candidates.drop(1).firstOrNull { it.companyId != best.companyId }
+        if (conflicting != null && best.confidence - conflicting.confidence < AMBIGUITY_MARGIN) return null
+
+        return IdentityResolution(
+            companyId = best.companyId,
+            companyName = best.companyName,
+            category = best.category,
+            confidence = best.confidence,
+            signalType = "phone",
+            normalizedSignal = normalized
+        )
     }
 
     fun recordCallEvent(companyName: String?, blocked: Boolean, confidence: Double?) {
@@ -213,7 +307,9 @@ class StableRepository(context: Context) {
     }.getOrDefault(emptyList())
 
     companion object {
-        const val MIN_BLOCK_CONFIDENCE = 0.98
+        const val MIN_IDENTITY_CONFIDENCE = 0.90
+        const val MIN_ACTION_CONFIDENCE = 0.98
+        private const val AMBIGUITY_MARGIN = 0.03
         private const val CACHE_MAX_AGE_MS = 7L * 24 * 60 * 60 * 1000
         private const val KEY_INSTALL = "install_key"
         private const val KEY_COMPANIES = "companies"
