@@ -2,10 +2,13 @@ package com.cie.app
 
 import android.app.role.RoleManager
 import android.content.Context
+import android.graphics.Color as AndroidColor
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -23,6 +26,10 @@ import kotlinx.coroutines.launch
 class MainActivity076 : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.dark(AndroidColor.TRANSPARENT),
+            navigationBarStyle = SystemBarStyle.light(AndroidColor.WHITE, AndroidColor.WHITE)
+        )
         setContent { Cie076App(this) }
     }
 }
@@ -61,6 +68,7 @@ private fun Cie076App(context: Context) {
     Cie076Theme {
         Scaffold(
             containerColor = Cie076Colors.Background,
+            contentWindowInsets = WindowInsets(0, 0, 0, 0),
             bottomBar = {
                 if (screen in listOf(ModernScreen076.SHIELD, ModernScreen076.BLOCKED, ModernScreen076.ACTIVITY)) {
                     Cie076BottomBar(screen) { screen = it }
@@ -71,7 +79,7 @@ private fun Cie076App(context: Context) {
                 Modifier
                     .fillMaxSize()
                     .background(Cie076Colors.Background)
-                    .padding(padding)
+                    .padding(bottom = padding.calculateBottomPadding())
             ) {
                 when (screen) {
                     ModernScreen076.SHIELD -> Cie076ShieldScreen(
@@ -159,56 +167,69 @@ private fun Cie076ShieldScreen(
     val blockedCount = companies.count { it.blocked }
 
     LazyColumn(
-        modifier = Modifier.fillMaxSize().safeDrawingPadding(),
-        contentPadding = PaddingValues(20.dp, 10.dp, 20.dp, 112.dp),
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(bottom = 112.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         item { Cie076Hero(callRole, loading, onSettings) }
         item {
-            Text(
-                if (callRole) "Protection active" else "Protection needs setup",
-                fontSize = 34.sp,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = (-0.9).sp
-            )
-            Spacer(Modifier.height(6.dp))
-            Text(
-                "CIE recognizes the company behind incoming business calls and applies your company-wide block policy.",
-                color = Cie076Colors.Muted,
-                fontSize = 15.sp,
-                lineHeight = 21.sp
-            )
+            Column(Modifier.padding(horizontal = 20.dp)) {
+                Text(
+                    if (callRole) "Protection active" else "Protection needs setup",
+                    fontSize = 34.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = (-0.9).sp
+                )
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    "CIE recognizes the company behind incoming business calls and applies your company-wide block policy.",
+                    color = Cie076Colors.Muted,
+                    fontSize = 15.sp,
+                    lineHeight = 21.sp
+                )
+            }
         }
         item {
-            Cie076Card(container = androidx.compose.ui.graphics.Color(0xFFF0F7FF)) {
-                Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                    Column(Modifier.weight(1f)) {
-                        Text("CIE Shield", fontSize = 22.sp, fontWeight = FontWeight.Bold)
-                        Spacer(Modifier.height(3.dp))
-                        Text(if (callRole) "On-device call protection is on" else "Enable Android call screening", color = Cie076Colors.Muted, fontSize = 13.sp)
+            Box(Modifier.padding(horizontal = 20.dp)) {
+                Cie076Card(container = androidx.compose.ui.graphics.Color(0xFFF0F7FF)) {
+                    Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text("CIE Shield", fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                            Spacer(Modifier.height(3.dp))
+                            Text(if (callRole) "On-device call protection is on" else "Enable Android call screening", color = Cie076Colors.Muted, fontSize = 13.sp)
+                        }
+                        Cie076Toggle(callRole) { enabled ->
+                            if (enabled && !callRole) cie076RequestCallRole(context)?.let(roleLauncher::launch)
+                        }
                     }
-                    Cie076Toggle(callRole) { enabled ->
-                        if (enabled && !callRole) cie076RequestCallRole(context)?.let(roleLauncher::launch)
+                    Spacer(Modifier.height(18.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Cie076MetricTile(blockedCount.toString(), "Blocked", Modifier.weight(1f))
+                        Cie076MetricTile(events.size.toString(), "Calls", Modifier.weight(1f))
                     }
-                }
-                Spacer(Modifier.height(18.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Cie076MetricTile(blockedCount.toString(), "Blocked", Modifier.weight(1f))
-                    Cie076MetricTile(events.size.toString(), "Calls", Modifier.weight(1f))
                 }
             }
         }
         item {
-            Row(Modifier.fillMaxWidth(), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = 20.dp),
+                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+            ) {
                 Text("Recent", fontSize = 23.sp, fontWeight = FontWeight.Bold, letterSpacing = (-0.4).sp)
                 Spacer(Modifier.weight(1f))
                 if (events.isNotEmpty()) TextButton(onClick = onActivity) { Text("View all") }
             }
         }
         if (events.isEmpty()) {
-            item { Cie076EmptyState("No call activity yet", withPhoneIcon = true) }
+            item {
+                Box(Modifier.padding(horizontal = 20.dp)) {
+                    Cie076EmptyState("No call activity yet", withPhoneIcon = true)
+                }
+            }
         } else {
-            items(events.take(3), key = { "${it.timestamp}-${it.companyName}-${it.blocked}" }) { Cie076ActivityRow(it) }
+            items(events.take(3), key = { "${it.timestamp}-${it.companyName}-${it.blocked}" }) {
+                Box(Modifier.padding(horizontal = 20.dp)) { Cie076ActivityRow(it) }
+            }
         }
     }
 }
