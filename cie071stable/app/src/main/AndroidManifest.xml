@@ -5,7 +5,7 @@
         android:allowBackup="false"
         android:icon="@drawable/ic_cie"
         android:roundIcon="@drawable/ic_cie"
-        android:label="CIE Stable"
+        android:label="CIE 0.7.3"
         android:supportsRtl="true"
         android:theme="@style/Theme.CIE"
         android:usesCleartextTraffic="false">
