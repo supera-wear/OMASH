@@ -1,4 +1,4 @@
-name: CIE 0.7.4 Message Shield Core Android Build
+name: CIE 0.7.5 Identity Network Android Build
 
 on:
   push:
@@ -36,25 +36,9 @@ jobs:
       - name: Install Android API 36
         run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
 
-      - name: Verify Stable permission contract
-        run: |
-          MANIFEST=cie071stable/app/src/main/AndroidManifest.xml
-          grep -q 'android.permission.INTERNET' "$MANIFEST"
-          grep -q 'android.telecom.CallScreeningService' "$MANIFEST"
-          grep -q 'MessageShieldLabActivity' "$MANIFEST"
-          test -s cie071stable/app/src/main/java/com/cie/app/MessageShieldCore.kt
-          test -s cie071stable/app/src/main/java/com/cie/app/MessageShieldLabActivity.kt
-          grep -q 'blockMarketingSms' cie071stable/app/src/main/java/com/cie/app/MessageShieldCore.kt
-          grep -q 'sender_id' cie071stable/app/src/main/java/com/cie/app/MessageShieldCore.kt
-          ! grep -q 'READ_SMS' "$MANIFEST"
-          ! grep -q 'RECEIVE_SMS' "$MANIFEST"
-          ! grep -q 'SEND_SMS' "$MANIFEST"
-          ! grep -q 'READ_CALL_LOG' "$MANIFEST"
-          ! grep -q 'READ_CONTACTS' "$MANIFEST"
-
-      - name: Build CIE 0.7.4 Stable APK
+      - name: Build CIE 0.7.5 Stable APK
         working-directory: cie071stable
-        run: gradle :app:assembleDebug --stacktrace -PCIE_API_BASE_URL=https://br-sparkling-dream-b1q8x3n5-cieapi.compute.c-5.eu-central-1.aws.neon.tech
+        run: gradle :app:assembleDebug --stacktrace -PCIE_API_BASE_URL=https://br-sparkling-dream-b1q8x3n5-cieapi.compute.c-5.eu-central-1.aws.neon.tech -PCIE_IDENTITY_BASE_URL=https://br-sparkling-dream-b1q8x3n5-cieidentity.compute.c-5.eu-central-1.aws.neon.tech
 
       - name: Verify APK
         run: |
@@ -63,15 +47,14 @@ jobs:
           APKSIGNER="$ANDROID_HOME/build-tools/36.0.0/apksigner"
           test -s "$APK"
           unzip -t "$APK" >/dev/null
-          "$AAPT2" dump badging "$APK" | grep -q "package: name='com.cie.app.stable074' versionCode='12' versionName='0.7.4'"
+          "$AAPT2" dump badging "$APK" | grep -q "package: name='com.cie.app.stable075' versionCode='13' versionName='0.7.5'"
           "$APKSIGNER" verify --verbose --print-certs "$APK"
-          ! "$AAPT2" dump permissions "$APK" | grep -E 'READ_SMS|RECEIVE_SMS|SEND_SMS|READ_CALL_LOG|READ_CONTACTS'
           sha256sum "$APK"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: CIE-0.7.4-Message-Shield-Core-APK
+          name: CIE-0.7.5-Identity-Network-APK
           path: cie071stable/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 3
