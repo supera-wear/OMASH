@@ -61,7 +61,7 @@ internal fun CieWhiteWordmark() {
     Image(
         painter = painterResource(R.drawable.cie_wordmark_official),
         contentDescription = "CIE Company Identity Engine",
-        modifier = Modifier.width(182.dp).height(65.dp),
+        modifier = Modifier.width(170.dp).height(61.dp),
         contentScale = ContentScale.Fit
     )
 }
@@ -83,10 +83,13 @@ internal fun Cie076Hero(active: Boolean, loading: Boolean, onSettings: () -> Uni
         Modifier
             .fillMaxWidth()
             .background(
-                Brush.linearGradient(listOf(Cie076Colors.BlueDeep, Cie076Colors.Blue, Cie076Colors.BlueLight)),
-                RoundedCornerShape(28.dp)
+                brush = Brush.linearGradient(
+                    listOf(Cie076Colors.BlueDeep, Cie076Colors.Blue, Cie076Colors.BlueLight)
+                ),
+                shape = RoundedCornerShape(bottomStart = 30.dp, bottomEnd = 30.dp)
             )
-            .padding(horizontal = 20.dp, vertical = 18.dp)
+            .statusBarsPadding()
+            .padding(start = 20.dp, end = 20.dp, top = 12.dp, bottom = 20.dp)
     ) {
         Column {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -94,23 +97,38 @@ internal fun Cie076Hero(active: Boolean, loading: Boolean, onSettings: () -> Uni
                 Spacer(Modifier.weight(1f))
                 Box(contentAlignment = Alignment.TopEnd) {
                     IconButton(onClick = onSettings) {
-                        Icon(Icons.Rounded.Settings, contentDescription = "Settings", tint = Color.White, modifier = Modifier.size(27.dp))
+                        Icon(
+                            Icons.Rounded.Settings,
+                            contentDescription = "Settings",
+                            tint = Color.White,
+                            modifier = Modifier.size(27.dp)
+                        )
                     }
                     Box(
                         Modifier
                             .padding(top = 3.dp, end = 2.dp)
                             .size(9.dp)
-                            .background(if (active) Cie076Colors.Green else Color(0xFFFFB74D), RoundedCornerShape(99.dp))
+                            .background(
+                                if (active) Cie076Colors.Green else Color(0xFFFFB74D),
+                                RoundedCornerShape(99.dp)
+                            )
                     )
                 }
             }
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(20.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
-                    Modifier.size(52.dp).background(Color.White.copy(alpha = 0.14f), RoundedCornerShape(99.dp)),
+                    Modifier
+                        .size(50.dp)
+                        .background(Color.White.copy(alpha = 0.14f), RoundedCornerShape(99.dp)),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.Rounded.CheckCircle, contentDescription = null, tint = Color.White, modifier = Modifier.size(30.dp))
+                    Icon(
+                        Icons.Rounded.CheckCircle,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(29.dp)
+                    )
                 }
                 Spacer(Modifier.width(14.dp))
                 Column {
@@ -121,14 +139,14 @@ internal fun Cie076Hero(active: Boolean, loading: Boolean, onSettings: () -> Uni
                             else -> "CIE Shield needs setup"
                         },
                         color = Color.White,
-                        fontSize = 24.sp,
+                        fontSize = 23.sp,
                         fontWeight = FontWeight.Bold,
-                        letterSpacing = (-0.5).sp
+                        letterSpacing = (-0.45).sp
                     )
                     Spacer(Modifier.height(2.dp))
                     Text(
                         if (active) "Your phone is protected" else "Enable Call Shield to finish setup",
-                        color = Color.White.copy(alpha = 0.82f),
+                        color = Color.White.copy(alpha = 0.84f),
                         fontSize = 14.sp
                     )
                 }
@@ -139,49 +157,105 @@ internal fun Cie076Hero(active: Boolean, loading: Boolean, onSettings: () -> Uni
 
 @Composable
 internal fun Cie076TopBar(onSettings: () -> Unit) {
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+    Row(
+        Modifier.fillMaxWidth().statusBarsPadding(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
         CieDarkWordmark()
         Spacer(Modifier.weight(1f))
         Box(contentAlignment = Alignment.TopEnd) {
             IconButton(onClick = onSettings) {
-                Icon(Icons.Rounded.Settings, contentDescription = "Settings", tint = Cie076Colors.Text, modifier = Modifier.size(25.dp))
+                Icon(
+                    Icons.Rounded.Settings,
+                    contentDescription = "Settings",
+                    tint = Cie076Colors.Text,
+                    modifier = Modifier.size(25.dp)
+                )
             }
-            Box(Modifier.padding(top = 4.dp, end = 3.dp).size(8.dp).background(Cie076Colors.Green, RoundedCornerShape(99.dp)))
+            Box(
+                Modifier
+                    .padding(top = 4.dp, end = 3.dp)
+                    .size(8.dp)
+                    .background(Cie076Colors.Green, RoundedCornerShape(99.dp))
+            )
         }
     }
 }
 
 @Composable
 internal fun Cie076BottomBar(current: ModernScreen076, onSelect: (ModernScreen076) -> Unit) {
-    Surface(color = Color.White, tonalElevation = 0.dp, shadowElevation = 0.dp) {
-        Column {
+    Surface(
+        color = Color.White,
+        tonalElevation = 0.dp,
+        shadowElevation = 0.dp
+    ) {
+        Column(Modifier.navigationBarsPadding()) {
             HorizontalDivider(color = Cie076Colors.Border)
             Row(
-                Modifier.fillMaxWidth().navigationBarsPadding().height(72.dp).padding(horizontal = 10.dp),
+                Modifier
+                    .fillMaxWidth()
+                    .height(72.dp)
+                    .padding(horizontal = 10.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Cie076BottomItem("Shield", Icons.Rounded.Shield, current == ModernScreen076.SHIELD, Modifier.weight(1f)) { onSelect(ModernScreen076.SHIELD) }
-                Cie076BottomItem("Blocked", Icons.Rounded.Block, current == ModernScreen076.BLOCKED, Modifier.weight(1f)) { onSelect(ModernScreen076.BLOCKED) }
-                Cie076BottomItem("Activity", Icons.Rounded.History, current == ModernScreen076.ACTIVITY, Modifier.weight(1f)) { onSelect(ModernScreen076.ACTIVITY) }
+                Cie076BottomItem(
+                    "Shield",
+                    Icons.Rounded.Shield,
+                    current == ModernScreen076.SHIELD,
+                    Modifier.weight(1f)
+                ) { onSelect(ModernScreen076.SHIELD) }
+                Cie076BottomItem(
+                    "Blocked",
+                    Icons.Rounded.Block,
+                    current == ModernScreen076.BLOCKED,
+                    Modifier.weight(1f)
+                ) { onSelect(ModernScreen076.BLOCKED) }
+                Cie076BottomItem(
+                    "Activity",
+                    Icons.Rounded.History,
+                    current == ModernScreen076.ACTIVITY,
+                    Modifier.weight(1f)
+                ) { onSelect(ModernScreen076.ACTIVITY) }
             }
         }
     }
 }
 
 @Composable
-private fun Cie076BottomItem(label: String, icon: ImageVector, selected: Boolean, modifier: Modifier, onClick: () -> Unit) {
+private fun Cie076BottomItem(
+    label: String,
+    icon: ImageVector,
+    selected: Boolean,
+    modifier: Modifier,
+    onClick: () -> Unit
+) {
     Column(
         modifier.fillMaxHeight().clickable(onClick = onClick),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
         Box(
-            Modifier.size(34.dp).background(if (selected) Cie076Colors.BlueSoft else Color.Transparent, RoundedCornerShape(99.dp)),
+            Modifier
+                .size(34.dp)
+                .background(
+                    if (selected) Cie076Colors.BlueSoft else Color.Transparent,
+                    RoundedCornerShape(99.dp)
+                ),
             contentAlignment = Alignment.Center
         ) {
-            Icon(icon, contentDescription = label, tint = if (selected) Cie076Colors.Blue else Cie076Colors.Muted, modifier = Modifier.size(21.dp))
+            Icon(
+                icon,
+                contentDescription = label,
+                tint = if (selected) Cie076Colors.Blue else Cie076Colors.Muted,
+                modifier = Modifier.size(21.dp)
+            )
         }
         Spacer(Modifier.height(2.dp))
-        Text(label, color = if (selected) Cie076Colors.Blue else Cie076Colors.Muted, fontSize = 11.sp, fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium)
+        Text(
+            label,
+            color = if (selected) Cie076Colors.Blue else Cie076Colors.Muted,
+            fontSize = 11.sp,
+            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium
+        )
     }
 }
