@@ -1,5 +1,6 @@
 package com.cie.app
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -16,7 +17,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -54,24 +58,23 @@ internal fun Cie076Theme(content: @Composable () -> Unit) {
 
 @Composable
 internal fun CieWhiteWordmark() {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Text("cie", color = Color.White, fontSize = 38.sp, fontWeight = FontWeight.SemiBold, letterSpacing = (-2.3).sp)
-        Spacer(Modifier.width(12.dp))
-        Box(Modifier.width(1.dp).height(38.dp).background(Color.White.copy(alpha = 0.35f)))
-        Spacer(Modifier.width(12.dp))
-        Text("Company\nIdentity\nEngine", color = Color.White.copy(alpha = 0.86f), fontSize = 9.sp, lineHeight = 10.sp, fontWeight = FontWeight.Medium)
-    }
+    Image(
+        painter = painterResource(R.drawable.cie_wordmark_official),
+        contentDescription = "CIE Company Identity Engine",
+        modifier = Modifier.width(182.dp).height(65.dp),
+        contentScale = ContentScale.Fit
+    )
 }
 
 @Composable
 internal fun CieDarkWordmark() {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Text("cie", color = Cie076Colors.Text, fontSize = 32.sp, fontWeight = FontWeight.SemiBold, letterSpacing = (-2).sp)
-        Spacer(Modifier.width(10.dp))
-        Box(Modifier.width(1.dp).height(32.dp).background(Cie076Colors.Border))
-        Spacer(Modifier.width(10.dp))
-        Text("Company\nIdentity\nEngine", color = Cie076Colors.Muted, fontSize = 8.sp, lineHeight = 9.sp, fontWeight = FontWeight.Medium)
-    }
+    Image(
+        painter = painterResource(R.drawable.cie_wordmark_official),
+        contentDescription = "CIE Company Identity Engine",
+        modifier = Modifier.width(154.dp).height(55.dp),
+        contentScale = ContentScale.Fit,
+        colorFilter = ColorFilter.tint(Cie076Colors.Text)
+    )
 }
 
 @Composable
@@ -83,7 +86,7 @@ internal fun Cie076Hero(active: Boolean, loading: Boolean, onSettings: () -> Uni
                 Brush.linearGradient(listOf(Cie076Colors.BlueDeep, Cie076Colors.Blue, Cie076Colors.BlueLight)),
                 RoundedCornerShape(28.dp)
             )
-            .padding(20.dp)
+            .padding(horizontal = 20.dp, vertical = 18.dp)
     ) {
         Column {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -101,7 +104,7 @@ internal fun Cie076Hero(active: Boolean, loading: Boolean, onSettings: () -> Uni
                     )
                 }
             }
-            Spacer(Modifier.height(30.dp))
+            Spacer(Modifier.height(24.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
                     Modifier.size(52.dp).background(Color.White.copy(alpha = 0.14f), RoundedCornerShape(99.dp)),
@@ -113,12 +116,12 @@ internal fun Cie076Hero(active: Boolean, loading: Boolean, onSettings: () -> Uni
                 Column {
                     Text(
                         when {
-                            loading -> "CIE is updating"
-                            active -> "CIE is ready"
-                            else -> "CIE needs setup"
+                            loading -> "CIE Shield is updating"
+                            active -> "CIE Shield is ready"
+                            else -> "CIE Shield needs setup"
                         },
                         color = Color.White,
-                        fontSize = 25.sp,
+                        fontSize = 24.sp,
                         fontWeight = FontWeight.Bold,
                         letterSpacing = (-0.5).sp
                     )
