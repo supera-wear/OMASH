@@ -40,7 +40,7 @@ data class CallEvent(
 
 class StableRepository(context: Context) {
     private val app = context.applicationContext
-    private val prefs = app.getSharedPreferences("cie_stable_071", Context.MODE_PRIVATE)
+    private val prefs = app.getSharedPreferences("cie_stable_072", Context.MODE_PRIVATE)
     private val api = StableApiClient(BuildConfig.CIE_API_BASE_URL, installKey())
 
     suspend fun sync(): List<CompanyRow> = withContext(Dispatchers.IO) {
@@ -77,15 +77,23 @@ class StableRepository(context: Context) {
         else -> "Could not sync with CIE. Local protection stays active."
     }
 
+    /**
+     * Call decisions are intentionally local and fail-open.
+     * A high-confidence identity is only blocked when the user's company policy says blockCalls=true.
+     */
     fun lookupCall(rawNumber: String?): Pair<Boolean, CallCacheEntry?> {
         val number = normalizePhone(rawNumber.orEmpty())
         if (number.isBlank()) return false to null
+
         if (testNumber()?.let(::normalizePhone) == number) {
             return true to CallCacheEntry(number, "cie-beta-test", "CIE Beta Test", "test", 1.0)
         }
+
         if (!isCallCacheFresh()) return false to null
         val match = readCallCache().firstOrNull { normalizePhone(it.phone) == number } ?: return false to null
-        return (match.confidence >= MIN_BLOCK_CONFIDENCE) to match
+        val policyBlocksCalls = cachedCompanies().firstOrNull { it.id == match.companyId }?.blockCalls == true
+        val shouldBlock = policyBlocksCalls && match.confidence >= MIN_BLOCK_CONFIDENCE
+        return shouldBlock to match
     }
 
     fun recordCallEvent(companyName: String?, blocked: Boolean, confidence: Double?) {
@@ -128,7 +136,7 @@ class StableRepository(context: Context) {
 
     fun setTestNumber(number: String) {
         val normalized = normalizePhone(number)
-        require(normalized.length >= 8) { "Enter a valid phone number" }
+        require(normalized.filter(Char::isDigit).length >= 8) { "Enter a valid phone number" }
         prefs.edit().putString(KEY_TEST, normalized).apply()
     }
 
@@ -214,15 +222,31 @@ class StableRepository(context: Context) {
         private const val KEY_TEST = "test_number"
         private const val KEY_SYNCED_AT = "synced_at"
 
+        /** Normalize Turkish local/national caller-ID forms while preserving normal E.164 numbers. */
         fun normalizePhone(value: String): String {
-            val trimmed = value.trim()
+            val trimmed = value.trim().removePrefix("tel:").trim()
             val digits = trimmed.filter(Char::isDigit)
+            if (digits.isBlank()) return ""
             return when {
                 trimmed.startsWith("+") -> "+$digits"
-                digits.startsWith("00") -> "+${digits.drop(2)}"
-                digits.startsWith("0") && digits.length >= 10 -> "+90${digits.drop(1)}"
-                digits.startsWith("90") && digits.length >= 12 -> "+$digits"
+                digits.startsWith("00") && digits.length > 2 -> "+${digits.drop(2)}"
+                digits.startsWith("0") && digits.length == 11 -> "+90${digits.drop(1)}"
+                digits.length == 10 -> "+90$digits"
+                digits.startsWith("90") && digits.length == 12 -> "+$digits"
                 else -> digits
+            }
+        }
+
+        /** Privacy-safe label for an unknown caller. Raw numbers are not written to Activity. */
+        fun maskPhone(value: String): String {
+            val normalized = normalizePhone(value)
+            val digits = normalized.filter(Char::isDigit)
+            if (digits.length < 4) return "Unknown caller"
+            val last4 = digits.takeLast(4)
+            return if (normalized.startsWith("+90") && digits.length >= 12) {
+                "+90 ••• ••• $last4"
+            } else {
+                "••• ••• $last4"
             }
         }
     }
