@@ -1,0 +1,72 @@
+name: CIE 0.7.1 Stable Android Build
+
+on:
+  push:
+    branches: [cie07-stable]
+    paths:
+      - 'cie071stable/**'
+      - '.github/workflows/cie07-stable-build.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle 8.13
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android API 36
+        run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
+
+      - name: Verify Stable permission contract
+        run: |
+          MANIFEST=cie071stable/app/src/main/AndroidManifest.xml
+          grep -q 'android.permission.INTERNET' "$MANIFEST"
+          grep -q 'android.telecom.CallScreeningService' "$MANIFEST"
+          ! grep -q 'READ_SMS' "$MANIFEST"
+          ! grep -q 'RECEIVE_SMS' "$MANIFEST"
+          ! grep -q 'SEND_SMS' "$MANIFEST"
+          ! grep -q 'READ_CALL_LOG' "$MANIFEST"
+          ! grep -q 'READ_CONTACTS' "$MANIFEST"
+
+      - name: Build CIE 0.7.1 Stable APK
+        working-directory: cie071stable
+        run: gradle :app:assembleDebug --stacktrace -PCIE_API_BASE_URL=https://br-sparkling-dream-b1q8x3n5-cieapi.compute.c-5.eu-central-1.aws.neon.tech
+
+      - name: Verify APK
+        run: |
+          APK=cie071stable/app/build/outputs/apk/debug/app-debug.apk
+          AAPT2="$ANDROID_HOME/build-tools/36.0.0/aapt2"
+          APKSIGNER="$ANDROID_HOME/build-tools/36.0.0/apksigner"
+          test -s "$APK"
+          unzip -t "$APK" >/dev/null
+          "$AAPT2" dump badging "$APK" | grep -q "package: name='com.cie.app' versionCode='9' versionName='0.7.1'"
+          "$APKSIGNER" verify --verbose --print-certs "$APK"
+          ! "$AAPT2" dump permissions "$APK" | grep -E 'READ_SMS|RECEIVE_SMS|SEND_SMS|READ_CALL_LOG|READ_CONTACTS'
+          sha256sum "$APK"
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: CIE-0.7.1-Stable-APK
+          path: cie071stable/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 3
