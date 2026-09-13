@@ -13,11 +13,11 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.cie.app.stable"
+        applicationId = "com.cie.app.stable072"
         minSdk = 29
         targetSdk = 36
-        versionCode = 9
-        versionName = "0.7.1"
+        versionCode = 10
+        versionName = "0.7.2"
         buildConfigField("String", "CIE_API_BASE_URL", "\"$cieApiBaseUrl\"")
     }
 
