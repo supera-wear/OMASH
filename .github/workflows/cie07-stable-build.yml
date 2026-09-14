@@ -127,8 +127,8 @@ jobs:
           test "$(echo "$BADGING" | grep -c '^launchable-activity:')" -eq 1
           VERIFY="$($APKSIGNER verify --verbose --print-certs "$APK")"
           echo "$VERIFY"
-          echo "$VERIFY" | grep -q 'Verified using v1 scheme (JAR signing): true'
-          echo "$VERIFY" | grep -q 'Verified using v2 scheme (APK Signature Scheme v2): true'
+          echo "$VERIFY" | grep -q 'Verified using v3 scheme (APK Signature Scheme v3): true'
+          echo "$VERIFY" | grep -q 'Signer #1 certificate SHA-256 digest: a740fba6213f42a924c2e03326b8db9bbb996080cf1f551e3255adc5b3df6e7b'
           PERMS="$($AAPT2 dump permissions "$APK")"
           echo "$PERMS" | grep -q 'android.permission.RECEIVE_SMS'
           echo "$PERMS" | grep -q 'android.permission.SEND_SMS'
