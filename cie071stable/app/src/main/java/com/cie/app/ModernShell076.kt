@@ -106,7 +106,7 @@ private fun Cie076UnifiedBanner(
                     IconButton(onClick = onSettings) {
                         Icon(
                             Icons.Rounded.Settings,
-                            contentDescription = "Settings",
+                            contentDescription = cieText("settings"),
                             tint = Color.White,
                             modifier = Modifier.size(27.dp)
                         )
@@ -162,11 +162,11 @@ private fun Cie076UnifiedBanner(
 internal fun Cie076Hero(active: Boolean, loading: Boolean, onSettings: () -> Unit) {
     Cie076UnifiedBanner(
         title = when {
-            loading -> "CIE Shield is updating"
-            active -> "CIE Shield is ready"
-            else -> "CIE Shield needs setup"
+            loading -> cieText("cie_updating")
+            active -> cieText("cie_ready")
+            else -> cieText("cie_needs_setup")
         },
-        subtitle = if (active) "Your phone is protected" else "Enable Call Shield to finish setup",
+        subtitle = if (active) cieText("phone_protected") else cieText("enable_call_shield_setup"),
         active = active,
         onSettings = onSettings
     )
@@ -183,7 +183,7 @@ internal fun Cie076PageHero(title: String, onSettings: () -> Unit) {
 
     Cie076UnifiedBanner(
         title = title,
-        subtitle = if (active) "Your phone is protected" else "Enable Call Shield to finish setup",
+        subtitle = if (active) cieText("phone_protected") else cieText("enable_call_shield_setup"),
         active = active,
         onSettings = onSettings
     )
@@ -201,7 +201,7 @@ internal fun Cie076TopBar(onSettings: () -> Unit) {
             IconButton(onClick = onSettings) {
                 Icon(
                     Icons.Rounded.Settings,
-                    contentDescription = "Settings",
+                    contentDescription = cieText("settings"),
                     tint = Cie076Colors.Text,
                     modifier = Modifier.size(25.dp)
                 )
@@ -233,19 +233,19 @@ internal fun Cie076BottomBar(current: ModernScreen076, onSelect: (ModernScreen07
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Cie076BottomItem(
-                    "Shield",
+                    cieText("shield"),
                     Icons.Rounded.Shield,
                     current == ModernScreen076.SHIELD,
                     Modifier.weight(1f)
                 ) { onSelect(ModernScreen076.SHIELD) }
                 Cie076BottomItem(
-                    "Blocked",
+                    cieText("blocked"),
                     Icons.Rounded.Block,
                     current == ModernScreen076.BLOCKED,
                     Modifier.weight(1f)
                 ) { onSelect(ModernScreen076.BLOCKED) }
                 Cie076BottomItem(
-                    "Activity",
+                    cieText("activity"),
                     Icons.Rounded.History,
                     current == ModernScreen076.ACTIVITY,
                     Modifier.weight(1f)
