@@ -16,7 +16,7 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.cie.app.stable084fresh"
+        applicationId = "com.cie.app.stable084safe"
         minSdk = 29
         targetSdk = 36
         versionCode = 22
