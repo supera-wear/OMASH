@@ -16,13 +16,11 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        // Fresh install-safe beta package. This deliberately does not collide with
-        // any earlier CIE test package that may remain on the device.
-        applicationId = "com.cie.app.safe085"
+        applicationId = "com.cie.app.stable084"
         minSdk = 29
         targetSdk = 36
-        versionCode = 23
-        versionName = "0.8.5"
+        versionCode = 22
+        versionName = "0.8.4"
         buildConfigField("String", "CIE_API_BASE_URL", "\"$cieApiBaseUrl\"")
         buildConfigField("String", "CIE_IDENTITY_BASE_URL", "\"$cieIdentityBaseUrl\"")
     }
