@@ -1,5 +1,6 @@
 package com.cie.app
 
+import android.content.Intent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -12,6 +13,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -32,8 +34,8 @@ internal fun Cie076BlockedScreen(
     }
 
     LazyColumn(
-        modifier = Modifier.fillMaxSize().safeDrawingPadding(),
-        contentPadding = PaddingValues(20.dp, 10.dp, 20.dp, 112.dp),
+        modifier = Modifier.fillMaxSize().statusBarsPadding(),
+        contentPadding = PaddingValues(20.dp, 10.dp, 20.dp, 20.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         item { Cie076TopBar(onSettings) }
@@ -62,8 +64,8 @@ internal fun Cie076BlockedScreen(
 @Composable
 internal fun Cie076ActivityScreen(events: List<CallEvent>, onSettings: () -> Unit, onClear: () -> Unit) {
     LazyColumn(
-        modifier = Modifier.fillMaxSize().safeDrawingPadding(),
-        contentPadding = PaddingValues(20.dp, 10.dp, 20.dp, 112.dp),
+        modifier = Modifier.fillMaxSize().statusBarsPadding(),
+        contentPadding = PaddingValues(20.dp, 10.dp, 20.dp, 20.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         item { Cie076TopBar(onSettings) }
@@ -91,6 +93,7 @@ internal fun Cie076SettingsScreen(
     onHealthCheck: () -> Unit,
     onReport: () -> Unit
 ) {
+    val context = LocalContext.current
     var testNumber by rememberSaveable { mutableStateOf(repo.testNumber().orEmpty()) }
     var testStatus by remember { mutableStateOf<String?>(null) }
 
@@ -149,6 +152,14 @@ internal fun Cie076SettingsScreen(
                     color = Cie076Colors.Muted,
                     lineHeight = 20.sp
                 )
+                Spacer(Modifier.height(12.dp))
+                OutlinedButton(
+                    onClick = { context.startActivity(Intent(context, MessageShieldLabActivity::class.java)) },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(14.dp)
+                ) {
+                    Text("Open Message Lab")
+                }
             }
         }
         item {
@@ -213,7 +224,7 @@ internal fun Cie076SettingsScreen(
             }
         }
         item {
-            Text("CIE 0.7.6 UI Refresh", color = Cie076Colors.Muted, fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp))
+            Text("CIE Shield 0.7.9", color = Cie076Colors.Muted, fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp))
         }
     }
 }
