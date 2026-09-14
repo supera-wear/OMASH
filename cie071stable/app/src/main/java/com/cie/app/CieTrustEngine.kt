@@ -6,9 +6,9 @@ import kotlin.math.max
 /**
  * CIE trust/risk layer shared by Call Shield and Message Shield.
  *
- * Important security rule: a sender is never treated as government merely because
- * it *claims* to be government. Government bypass is only granted to a verified
- * Identity Network record with very high confidence.
+ * A sender is NEVER trusted because of a displayed name alone. Government bypass
+ * requires a verified CIE registry record plus a network-attested identity signal.
+ * This is deliberately stricter so a spoofed "government" caller is not whitelisted.
  */
 object CieTrustEngine {
     enum class EntityType { GOVERNMENT, FINANCIAL, COMMERCIAL, UTILITY, HEALTHCARE, OTHER, UNKNOWN }
@@ -25,14 +25,24 @@ object CieTrustEngine {
     fun hardenCall(decision: CallDecision): CallDecision {
         val identity = decision.resolution ?: return decision
 
-        // Government is allow-listed only after a strong verified identity match.
-        if (isVerifiedGovernment(identity.companyName, identity.category, identity.confidence, verified = true)) {
+        // Government can bypass blocking only when the backend marks the signal as
+        // verified AND network-attested. Caller-ID text/number alone is not enough.
+        if (isVerifiedGovernment(
+                identity.companyName,
+                identity.category,
+                identity.confidence,
+                identity.verified,
+                identity.networkAttested
+            ) && identity.riskScore < 0.50
+        ) {
             return decision.copy(block = false, label = identity.companyName)
         }
 
-        // A verified Identity Network entry explicitly categorized as scam/fraud/spam
-        // overrides a normal company policy and is blocked locally.
-        if (isThreatCategory(identity.category) && identity.confidence >= 0.95) {
+        // Explicit high-risk/fraud metadata overrides a normal company policy.
+        if ((isThreatCategory(identity.category) || identity.riskScore >= 0.90 ||
+                identity.purpose.equals("fraud", true) || identity.purpose.equals("scam", true)) &&
+            identity.confidence >= 0.95
+        ) {
             return decision.copy(block = true, label = identity.companyName)
         }
 
@@ -53,7 +63,8 @@ object CieTrustEngine {
             identity.companyName,
             identity.category,
             identity.confidence,
-            identity.verified
+            identity.verified,
+            identity.networkAttested
         )
         if (verifiedGovernment && identity.riskScore < 0.50) {
             return MessageAssessment(
@@ -61,7 +72,7 @@ object CieTrustEngine {
                 riskScore = identity.riskScore.coerceIn(0.0, 1.0),
                 commercialIntent = commercial,
                 verifiedGovernment = true,
-                reason = "Verified government identity. CIE always allows official government communication."
+                reason = "Network-attested government identity. CIE allows official government communication."
             )
         }
 
@@ -78,15 +89,15 @@ object CieTrustEngine {
         if (identity?.entityType.equals("fraud", true) || identity?.entityType.equals("scam", true)) risk = max(risk, 0.98)
         if (identity != null && isThreatCategory(identity.category)) risk = max(risk, 0.95)
 
-        // Impersonation: claiming government/bank identity is not enough. The sender must
-        // resolve to the correct verified identity before it can be trusted.
+        // Impersonation: a claim of e-Devlet, police, tax office, bank, etc. is a risk
+        // signal until the actual transport identity is independently verified.
         if (claimsGovernment && !verifiedGovernment) {
             risk += if (hasLink || hasCredentialRequest || hasPaymentRequest) 0.58 else 0.30
         }
 
         val verifiedFinancial = identity != null &&
             classifyEntity(identity.companyName, identity.category, identity.entityType) == EntityType.FINANCIAL &&
-            identity.verified && identity.confidence >= 0.98
+            identity.verified && identity.networkAttested && identity.confidence >= 0.98
         if (claimsFinancial && !verifiedFinancial) {
             risk += if (hasLink || hasCredentialRequest || hasPaymentRequest) 0.48 else 0.22
         }
@@ -141,9 +152,10 @@ object CieTrustEngine {
         companyName: String,
         category: String,
         confidence: Double,
-        verified: Boolean
+        verified: Boolean,
+        networkAttested: Boolean
     ): Boolean {
-        return verified && confidence >= 0.995 &&
+        return verified && networkAttested && confidence >= 0.995 &&
             classifyEntity(companyName, category, "") == EntityType.GOVERNMENT
     }
 
