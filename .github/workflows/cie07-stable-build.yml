@@ -1,4 +1,4 @@
-name: CIE Shield 0.8.4 Clean Install Android Build
+name: CIE Shield 0.8.4 Install Verified Android Build
 
 on:
   push:
@@ -45,10 +45,10 @@ jobs:
       - name: Validate unified banner polish
         run: python3 cie071stable/apply_ui_polish.py
 
-      - name: Prepare 0.8.4 UI
+      - name: Prepare 0.8.4 UI and original icon
         run: python3 cie071stable/apply_v080.py
 
-      - name: Verify Message Shield and install-fix contract
+      - name: Verify Message Shield and install contract
         run: |
           MANIFEST=cie071stable/app/src/main/AndroidManifest.xml
           DEBUG_MANIFEST=cie071stable/app/src/debug/AndroidManifest.xml
@@ -66,7 +66,7 @@ jobs:
           grep -q 'android.telecom.CallScreeningService' "$MANIFEST"
           grep -q 'android:allowBackup="false"' "$MANIFEST"
           grep -q 'android:usesCleartextTraffic="false"' "$MANIFEST"
-          grep -q 'cie_shield_app_icon_v2' "$MANIFEST"
+          grep -q 'cie_shield_app_icon_original' "$MANIFEST"
           grep -q 'android.permission.READ_CONTACTS' "$DEBUG_MANIFEST"
           ! grep -q 'READ_SMS' "$MANIFEST"
           ! grep -q 'READ_CALL_LOG' "$MANIFEST"
@@ -94,20 +94,43 @@ jobs:
         working-directory: cie071stable
         run: gradle :app:assembleDebug --stacktrace -PCIE_API_BASE_URL=https://br-sparkling-dream-b1q8x3n5-cieapi.compute.c-5.eu-central-1.aws.neon.tech -PCIE_IDENTITY_BASE_URL=https://br-sparkling-dream-b1q8x3n5-cieidentity.compute.c-5.eu-central-1.aws.neon.tech
 
-      - name: Verify APK
+      - name: Force v1 v2 v3 APK signatures
         run: |
-          APK=cie071stable/app/build/outputs/apk/debug/app-debug.apk
+          SOURCE=cie071stable/app/build/outputs/apk/debug/app-debug.apk
+          FINAL=cie071stable/app/build/outputs/apk/debug/CIE-Shield-0.8.4-Install-Verified.apk
+          APKSIGNER="$ANDROID_HOME/build-tools/36.0.0/apksigner"
+          "$APKSIGNER" sign \
+            --ks cie071stable/cie-test-signing.jks \
+            --ks-key-alias cieTest \
+            --ks-pass pass:CIE-Test-084-Only \
+            --key-pass pass:CIE-Test-084-Only \
+            --v1-signing-enabled true \
+            --v2-signing-enabled true \
+            --v3-signing-enabled true \
+            --v4-signing-enabled false \
+            --out "$FINAL" \
+            "$SOURCE"
+          test -s "$FINAL"
+
+      - name: Verify installable APK
+        run: |
+          APK=cie071stable/app/build/outputs/apk/debug/CIE-Shield-0.8.4-Install-Verified.apk
           AAPT2="$ANDROID_HOME/build-tools/36.0.0/aapt2"
           APKSIGNER="$ANDROID_HOME/build-tools/36.0.0/apksigner"
+          ZIPALIGN="$ANDROID_HOME/build-tools/36.0.0/zipalign"
           test -s "$APK"
           unzip -t "$APK" >/dev/null
+          "$ZIPALIGN" -c -P 16 -v 4 "$APK" >/dev/null
           BADGING="$($AAPT2 dump badging "$APK")"
           echo "$BADGING" | grep -q "package: name='com.cie.app.stable084' versionCode='22' versionName='0.8.4'"
           echo "$BADGING" | grep -q "application-label:'CIE Shield'"
           test "$(echo "$BADGING" | grep -c '^launchable-activity:')" -eq 1
-          "$APKSIGNER" verify --verbose --print-certs "$APK"
-          CERT="$($APKSIGNER verify --print-certs "$APK")"
-          echo "$CERT" | grep -qi 'a740fba6213f42a924c2e03326b8db9bbb996080cf1f551e3255adc5b3df6e7b'
+          VERIFY="$($APKSIGNER verify --verbose --print-certs "$APK")"
+          echo "$VERIFY"
+          echo "$VERIFY" | grep -q 'Verified using v1 scheme (JAR signing): true'
+          echo "$VERIFY" | grep -q 'Verified using v2 scheme (APK Signature Scheme v2): true'
+          echo "$VERIFY" | grep -q 'Verified using v3 scheme (APK Signature Scheme v3): true'
+          echo "$VERIFY" | grep -qi 'a740fba6213f42a924c2e03326b8db9bbb996080cf1f551e3255adc5b3df6e7b'
           PERMS="$($AAPT2 dump permissions "$APK")"
           echo "$PERMS" | grep -q 'android.permission.RECEIVE_SMS'
           echo "$PERMS" | grep -q 'android.permission.SEND_SMS'
@@ -115,12 +138,14 @@ jobs:
           echo "$PERMS" | grep -q 'android.permission.RECEIVE_WAP_PUSH'
           echo "$PERMS" | grep -q 'android.permission.READ_CONTACTS'
           ! echo "$PERMS" | grep -E 'READ_SMS|READ_CALL_LOG'
+          ICON_HASH="$(unzip -p "$APK" res/drawable/cie_shield_app_icon_original.webp | sha256sum | awk '{print $1}')"
+          test "$ICON_HASH" = 'f9618336d47cc6b2a62a210e956c5c569f76571f1ee077ce4280b0f2a2644897'
           sha256sum "$APK"
 
-      - name: Upload APK
+      - name: Upload install-verified APK
         uses: actions/upload-artifact@v4
         with:
-          name: CIE-Shield-0.8.4-Clean-Install-Fixed-APK
-          path: cie071stable/app/build/outputs/apk/debug/app-debug.apk
+          name: CIE-Shield-0.8.4-Install-Verified-Original-Icon-APK
+          path: cie071stable/app/build/outputs/apk/debug/CIE-Shield-0.8.4-Install-Verified.apk
           if-no-files-found: error
           retention-days: 3
