@@ -25,7 +25,7 @@ secondary.write_text(secondary_text, encoding="utf-8")
 raw_icon = base64.b64decode(icon_b64.read_text(encoding="utf-8").strip(), validate=True)
 icon_out.write_bytes(raw_icon)
 icon_hash = hashlib.sha256(raw_icon).hexdigest()
-if icon_hash != '324056415986c25b3aafd274b7416353e7de3d5574d05f80ebb8e44e9a469bc9':
+if icon_hash != 'f9618336d47cc6b2a62a210e956c5c569f76571f1ee077ce4280b0f2a2644897':
     raise SystemExit(f"Original CIE icon hash mismatch: {icon_hash}")
 
 if 'CIE Shield 0.8.4' not in secondary_text:
