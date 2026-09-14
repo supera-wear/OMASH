@@ -22,12 +22,14 @@ object CieTrustEngine {
         val reason: String
     )
 
-    fun hardenCall(decision: CallDecision): CallDecision {
-        val identity = decision.resolution ?: return decision
+    fun hardenCall(decision: CallDecision, networkIdentity: MessageIdentitySignal?): CallDecision {
+        val callIdentity = decision.resolution
+        val identity = networkIdentity
 
-        // Government can bypass blocking only when the backend marks the signal as
-        // verified AND network-attested. Caller-ID text/number alone is not enough.
-        if (isVerifiedGovernment(
+        // Government can bypass blocking only when the Identity Network explicitly
+        // marks the transport identity as verified AND network-attested. Displayed
+        // caller ID or a matching phone number by itself is not enough.
+        if (identity != null && isVerifiedGovernment(
                 identity.companyName,
                 identity.category,
                 identity.confidence,
@@ -38,12 +40,20 @@ object CieTrustEngine {
             return decision.copy(block = false, label = identity.companyName)
         }
 
-        // Explicit high-risk/fraud metadata overrides a normal company policy.
-        if ((isThreatCategory(identity.category) || identity.riskScore >= 0.90 ||
+        // Explicit fraud/scam metadata from the Identity Network overrides a normal
+        // allow decision. A known scam signal is blocked locally before ringing.
+        if (identity != null &&
+            (isThreatCategory(identity.category) || identity.riskScore >= 0.90 ||
                 identity.purpose.equals("fraud", true) || identity.purpose.equals("scam", true)) &&
             identity.confidence >= 0.95
         ) {
             return decision.copy(block = true, label = identity.companyName)
+        }
+
+        // Backward-compatible protection if the older call cache already labels a
+        // resolved company explicitly as fraud/scam/spam.
+        if (callIdentity != null && isThreatCategory(callIdentity.category) && callIdentity.confidence >= 0.95) {
+            return decision.copy(block = true, label = callIdentity.companyName)
         }
 
         return decision
