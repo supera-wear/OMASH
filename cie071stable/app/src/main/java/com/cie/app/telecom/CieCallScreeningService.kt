@@ -4,6 +4,7 @@ import android.os.Build
 import android.telecom.Call
 import android.telecom.CallScreeningService
 import android.telecom.Connection
+import com.cie.app.CieCommercialCallEngine
 import com.cie.app.CieTrustEngine
 import com.cie.app.IdentityNetworkStore
 import com.cie.app.StableRepository
@@ -28,69 +29,49 @@ class CieCallScreeningService : CallScreeningService() {
         }
 
         val carrierLabel = when (verificationStatus) {
-            Connection.VERIFICATION_STATUS_PASSED -> "Carrier verified"
-            Connection.VERIFICATION_STATUS_FAILED -> "Carrier verification failed"
-            else -> "Carrier not verified"
+            Connection.VERIFICATION_STATUS_PASSED -> "carrier verified"
+            Connection.VERIFICATION_STATUS_FAILED -> "carrier verification failed"
+            else -> "carrier not verified"
         }
 
-        // STIR verification is transport evidence, not identity by itself.
-        // PASSED can promote an already verified CIE identity to network-attested.
-        // FAILED is treated as a strong spoof signal and never whitelists a display name.
+        // Carrier/STIR verification is transport evidence, not company identity by itself.
         val runtimeIdentity = cachedIdentity?.copy(
             networkAttested = verificationStatus == Connection.VERIFICATION_STATUS_PASSED,
             riskScore = if (verificationStatus == Connection.VERIFICATION_STATUS_FAILED) {
                 maxOf(cachedIdentity.riskScore, 0.98)
-            } else {
-                cachedIdentity.riskScore
-            },
+            } else cachedIdentity.riskScore,
             purpose = if (verificationStatus == Connection.VERIFICATION_STATUS_FAILED) {
                 "spoof_suspected"
-            } else {
-                cachedIdentity.purpose
-            }
+            } else cachedIdentity.purpose
         )
 
-        val baseDecision = CieTrustEngine.hardenCall(
-            repo.decideCall(number),
-            runtimeIdentity
+        val hardened = CieTrustEngine.hardenCall(repo.decideCall(number), runtimeIdentity)
+        val result = CieCommercialCallEngine.evaluate(
+            repo = repo,
+            baseDecision = hardened,
+            identity = runtimeIdentity,
+            carrierVerificationStatus = verificationStatus
         )
 
-        val decision = if (verificationStatus == Connection.VERIFICATION_STATUS_FAILED) {
-            baseDecision.copy(
-                block = true,
-                label = runtimeIdentity?.companyName ?: baseDecision.label
-            )
-        } else {
-            baseDecision
-        }
-
-        val activityLabel = buildString {
-            append(decision.label)
-            append(" · ")
-            append(carrierLabel)
-            when {
-                verificationStatus == Connection.VERIFICATION_STATUS_FAILED -> append(" · spoof risk")
-                runtimeIdentity?.entityType.equals("government", true) && verificationStatus == Connection.VERIFICATION_STATUS_PASSED -> append(" · government verified")
-                runtimeIdentity != null -> append(" · identity matched")
-            }
-        }
+        val purposeLabel = result.purpose.name.lowercase().replace('_', ' ')
+        val activityLabel = "${result.label} · $purposeLabel · $carrierLabel · ${result.reason}"
 
         runCatching {
             repo.recordCallEvent(
                 companyName = activityLabel,
-                blocked = decision.block,
-                confidence = decision.resolution?.confidence ?: runtimeIdentity?.confidence
+                blocked = result.block,
+                confidence = result.confidence
             )
         }
 
         respondToCall(
             callDetails,
             CallResponse.Builder()
-                .setDisallowCall(decision.block)
-                .setRejectCall(decision.block)
-                .setSilenceCall(decision.block)
+                .setDisallowCall(result.block)
+                .setRejectCall(result.block)
+                .setSilenceCall(result.block)
                 .setSkipCallLog(false)
-                .setSkipNotification(decision.block)
+                .setSkipNotification(result.block)
                 .build()
         )
     }
