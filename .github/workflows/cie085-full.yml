@@ -31,6 +31,23 @@ jobs:
           sed -i 's/versionName = "0.8.4"/versionName = "0.8.5"/g' cie071stable/app/build.gradle.kts
           sed -i -E 's/CIE Shield 0\.8\.[0-9]+/CIE Shield 0.8.5/g' cie071stable/app/src/main/java/com/cie/app/SecondaryScreens076.kt
           tr -d '\n' < cie071stable/cie-app-icon-original.webp.b64 | base64 --decode > cie071stable/app/src/main/res/drawable/cie_shield_app_icon_original.webp
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('cie071stable/app/src/main/java/com/cie/app/SecondaryScreens076.kt')
+          s = p.read_text()
+          if 'item { CieContactCoverageCard() }' not in s:
+              marker = '            item {\n                Cie076Card {\n                    Text(cieText("sync"), fontSize = 20.sp, fontWeight = FontWeight.Bold)'
+              repl = '            item { CieContactCoverageCard() }\n' + marker
+              if marker not in s:
+                  raise SystemExit('Contact coverage insertion point missing')
+              s = s.replace(marker, repl, 1)
+              p.write_text(s)
+          PY
+      - name: Verify source surface
+        run: |
+          grep -q 'item { CieContactCoverageCard() }' cie071stable/app/src/main/java/com/cie/app/SecondaryScreens076.kt
+          grep -q 'class CieSmsDeliverReceiver' cie071stable/app/src/main/java/com/cie/app/MessageShieldLive.kt
+          grep -q 'CieCommercialCallEngine.evaluate' cie071stable/app/src/main/java/com/cie/app/telecom/CieCallScreeningService.kt
       - name: Build
         working-directory: cie071stable
         run: gradle :app:assembleDebug --stacktrace
@@ -45,12 +62,17 @@ jobs:
           "$ZIPALIGN" -c -P 16 -v 4 "$APK" >/dev/null
           BADGING="$($AAPT2 dump badging "$APK")"
           echo "$BADGING" | grep -q "package: name='com.cie.app.stable085full' versionCode='23' versionName='0.8.5'"
+          echo "$BADGING" | grep -q "application-label:'CIE Shield'"
+          test "$(echo "$BADGING" | grep -c '^launchable-activity:')" -eq 1
           "$APKSIGNER" verify --verbose --print-certs "$APK"
           PERMS="$($AAPT2 dump permissions "$APK")"
           echo "$PERMS" | grep -q 'android.permission.RECEIVE_SMS'
           echo "$PERMS" | grep -q 'android.permission.SEND_SMS'
           echo "$PERMS" | grep -q 'android.permission.READ_CONTACTS'
           ! echo "$PERMS" | grep -q 'android.permission.READ_CALL_LOG'
+          ICON_HASH="$(unzip -p "$APK" res/drawable/cie_shield_app_icon_original.webp | sha256sum | awk '{print $1}')"
+          test "$ICON_HASH" = 'f9618336d47cc6b2a62a210e956c5c569f76571f1ee077ce4280b0f2a2644897'
+          sha256sum "$APK"
       - name: Upload
         uses: actions/upload-artifact@v4
         with:
