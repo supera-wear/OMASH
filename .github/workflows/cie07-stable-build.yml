@@ -107,7 +107,7 @@ jobs:
           test "$(echo "$BADGING" | grep -c '^launchable-activity:')" -eq 1
           "$APKSIGNER" verify --verbose --print-certs "$APK"
           CERT="$($APKSIGNER verify --print-certs "$APK")"
-          echo "$CERT" | grep -qi 'A7:40:FB:A6:21:3F:42:A9:24:C2:E0:33:26:B8:DB:9B:BB:99:60:80:CF:1F:55:1E:32:55:AD:C5:B3:DF:6E:7B'
+          echo "$CERT" | grep -qi 'a740fba6213f42a924c2e03326b8db9bbb996080cf1f551e3255adc5b3df6e7b'
           PERMS="$($AAPT2 dump permissions "$APK")"
           echo "$PERMS" | grep -q 'android.permission.RECEIVE_SMS'
           echo "$PERMS" | grep -q 'android.permission.SEND_SMS'
