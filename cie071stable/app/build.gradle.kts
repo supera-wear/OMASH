@@ -16,12 +16,13 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        // Fresh beta package avoids signature conflicts with earlier ephemeral CI debug builds.
-        applicationId = "com.cie.app.stable084"
+        // Fresh install-safe beta package. This deliberately does not collide with
+        // any earlier CIE test package that may remain on the device.
+        applicationId = "com.cie.app.safe085"
         minSdk = 29
         targetSdk = 36
-        versionCode = 22
-        versionName = "0.8.4"
+        versionCode = 23
+        versionName = "0.8.5"
         buildConfigField("String", "CIE_API_BASE_URL", "\"$cieApiBaseUrl\"")
         buildConfigField("String", "CIE_IDENTITY_BASE_URL", "\"$cieIdentityBaseUrl\"")
     }
@@ -32,6 +33,10 @@ android {
             storePassword = "CIE-Test-084-Only"
             keyAlias = "cieTest"
             keyPassword = "CIE-Test-084-Only"
+            enableV1Signing = true
+            enableV2Signing = true
+            enableV3Signing = true
+            enableV4Signing = false
         }
     }
 
@@ -40,6 +45,7 @@ android {
             signingConfig = signingConfigs.getByName("cieBeta")
         }
         getByName("release") {
+            signingConfig = signingConfigs.getByName("cieBeta")
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(
