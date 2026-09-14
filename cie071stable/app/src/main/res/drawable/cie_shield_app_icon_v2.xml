@@ -1,0 +1,58 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <path android:pathData="M18,3 H90 C98.3,3 105,9.7 105,18 V90 C105,98.3 98.3,105 90,105 H18 C9.7,105 3,98.3 3,90 V18 C3,9.7 9.7,3 18,3 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="12"
+                android:startY="10"
+                android:endX="100"
+                android:endY="100"
+                android:type="linear"
+                android:startColor="#3153A8"
+                android:centerColor="#5E82CD"
+                android:endColor="#9BC8FF" />
+        </aapt:attr>
+    </path>
+
+    <path android:pathData="M54,17 C74.4,17 91,33.6 91,54 C91,74.4 74.4,91 54,91 C33.6,91 17,74.4 17,54 C17,33.6 33.6,17 54,17 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="28"
+                android:startY="76"
+                android:endX="82"
+                android:endY="28"
+                android:type="linear"
+                android:startColor="#4D7AC7"
+                android:centerColor="#8FA8D6"
+                android:endColor="#F1F6FF" />
+        </aapt:attr>
+    </path>
+
+    <path
+        android:pathData="M47,42 C43,37 36,36 31,40 C24,45 24,63 31,68 C36,72 43,71 47,66"
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="4.1"
+        android:strokeLineCap="square"
+        android:strokeLineJoin="round" />
+
+    <path
+        android:pathData="M53,40 L53,69"
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="4.1"
+        android:strokeLineCap="square" />
+
+    <path
+        android:pathData="M61,55 C61,45 66,39 74,39 C82,39 87,45 87,55 L61,55 C61,64 66,70 74,70 C80,70 84,67 87,64"
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="4.1"
+        android:strokeLineCap="square"
+        android:strokeLineJoin="round" />
+</vector>
