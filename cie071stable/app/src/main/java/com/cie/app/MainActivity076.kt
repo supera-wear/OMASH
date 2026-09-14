@@ -36,14 +36,46 @@ class MainActivity076 : ComponentActivity() {
 
 @Composable
 private fun Cie076App(context: Context) {
+    var languageSelection by remember { mutableStateOf(CieLanguageStore.selection(context)) }
+    CieLocalizedContent(languageSelection) {
+        Cie076LocalizedApp(
+            context = context,
+            languageSelection = languageSelection,
+            onLanguageChange = { selection ->
+                CieLanguageStore.setSelection(context, selection)
+                languageSelection = selection
+            }
+        )
+    }
+}
+
+@Composable
+private fun Cie076LocalizedApp(
+    context: Context,
+    languageSelection: String,
+    onLanguageChange: (String) -> Unit
+) {
     val repo = remember { StableRepository(context) }
     val scope = rememberCoroutineScope()
     var screen by rememberSaveable { mutableStateOf(ModernScreen076.SHIELD) }
     var companies by remember { mutableStateOf(repo.cachedCompanies()) }
     var loading by remember { mutableStateOf(false) }
     var online by remember { mutableStateOf<Boolean?>(null) }
-    var status by remember { mutableStateOf("CIE is ready") }
+    var statusKey by remember { mutableStateOf("status_ready") }
+    var statusArg by remember { mutableStateOf<String?>(null) }
     var activityVersion by remember { mutableIntStateOf(0) }
+
+    val status = statusArg?.let { cieText(statusKey, it) } ?: cieText(statusKey)
+
+    fun setErrorStatus(error: Throwable) {
+        val raw = repo.humanError(error)
+        statusArg = null
+        statusKey = when {
+            raw.contains("No internet", ignoreCase = true) -> "error_no_internet"
+            raw.contains("too long", ignoreCase = true) || raw.contains("timeout", ignoreCase = true) -> "error_timeout"
+            else -> "error_sync"
+        }
+    }
 
     fun sync(showSuccess: Boolean = true) {
         scope.launch {
@@ -52,12 +84,15 @@ private fun Cie076App(context: Context) {
                 .onSuccess {
                     companies = it
                     online = true
-                    if (showSuccess) status = "CIE is up to date"
+                    if (showSuccess) {
+                        statusKey = "status_up_to_date"
+                        statusArg = null
+                    }
                 }
                 .onFailure {
                     companies = repo.cachedCompanies()
                     online = false
-                    status = repo.humanError(it)
+                    setErrorStatus(it)
                 }
             loading = false
         }
@@ -101,9 +136,10 @@ private fun Cie076App(context: Context) {
                                 runCatching { repo.setPolicy(company.id, blocked) }
                                     .onSuccess {
                                         companies = it
-                                        status = if (blocked) "${company.name} is blocked" else "${company.name} is allowed"
+                                        statusKey = if (blocked) "status_company_blocked" else "status_company_allowed"
+                                        statusArg = company.name
                                     }
-                                    .onFailure { status = repo.humanError(it) }
+                                    .onFailure { setErrorStatus(it) }
                                 loading = false
                             }
                         }
@@ -118,12 +154,16 @@ private fun Cie076App(context: Context) {
                         online = online,
                         status = status,
                         loading = loading,
+                        languageSelection = languageSelection,
+                        currentLanguage = LocalCieLanguage.current,
+                        onLanguageChange = onLanguageChange,
                         onBack = { screen = ModernScreen076.SHIELD },
                         onSync = { sync(true) },
                         onHealthCheck = {
                             scope.launch {
                                 online = repo.serviceHealthy()
-                                status = if (online == true) "CIE service is online" else "CIE service is unreachable"
+                                statusKey = if (online == true) "status_service_online" else "status_service_unreachable"
+                                statusArg = null
                             }
                         },
                         onReport = { screen = ModernScreen076.REPORT }
@@ -136,10 +176,11 @@ private fun Cie076App(context: Context) {
                                 loading = true
                                 runCatching { repo.submitReport(type, value, category, reason) }
                                     .onSuccess {
-                                        status = "Report received"
+                                        statusKey = "status_report_received"
+                                        statusArg = null
                                         screen = ModernScreen076.BLOCKED
                                     }
-                                    .onFailure { status = repo.humanError(it) }
+                                    .onFailure { setErrorStatus(it) }
                                 loading = false
                             }
                         }
@@ -166,69 +207,75 @@ private fun Cie076ShieldScreen(
     val events = repo.recentEvents()
     val blockedCount = companies.count { it.blocked }
 
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(bottom = 20.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        item { Cie076Hero(callRole, loading, onSettings) }
-        item {
-            Column(Modifier.padding(horizontal = 20.dp)) {
-                Text(
-                    if (callRole) "Protection active" else "Protection needs setup",
-                    fontSize = 34.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = (-0.9).sp
-                )
-                Spacer(Modifier.height(6.dp))
-                Text(
-                    "CIE recognizes the company behind incoming business calls and applies your company-wide block policy.",
-                    color = Cie076Colors.Muted,
-                    fontSize = 15.sp,
-                    lineHeight = 21.sp
-                )
-            }
-        }
-        item {
-            Box(Modifier.padding(horizontal = 20.dp)) {
-                Cie076Card(container = androidx.compose.ui.graphics.Color(0xFFF0F7FF)) {
-                    Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                        Column(Modifier.weight(1f)) {
-                            Text("CIE Shield", fontSize = 22.sp, fontWeight = FontWeight.Bold)
-                            Spacer(Modifier.height(3.dp))
-                            Text(if (callRole) "On-device call protection is on" else "Enable Android call screening", color = Cie076Colors.Muted, fontSize = 13.sp)
-                        }
-                        Cie076Toggle(callRole) { enabled ->
-                            if (enabled && !callRole) cie076RequestCallRole(context)?.let(roleLauncher::launch)
-                        }
-                    }
-                    Spacer(Modifier.height(18.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Cie076MetricTile(blockedCount.toString(), "Blocked", Modifier.weight(1f))
-                        Cie076MetricTile(events.size.toString(), "Calls", Modifier.weight(1f))
-                    }
+    Column(Modifier.fillMaxSize()) {
+        Cie076Hero(callRole, loading, onSettings)
+        LazyColumn(
+            modifier = Modifier.weight(1f),
+            contentPadding = PaddingValues(top = 16.dp, bottom = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            item {
+                Column(Modifier.padding(horizontal = 20.dp)) {
+                    Text(
+                        if (callRole) cieText("protection_active") else cieText("protection_needs_setup"),
+                        fontSize = 34.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = (-0.9).sp
+                    )
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        cieText("shield_description"),
+                        color = Cie076Colors.Muted,
+                        fontSize = 15.sp,
+                        lineHeight = 21.sp
+                    )
                 }
             }
-        }
-        item {
-            Row(
-                Modifier.fillMaxWidth().padding(horizontal = 20.dp),
-                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
-            ) {
-                Text("Recent", fontSize = 23.sp, fontWeight = FontWeight.Bold, letterSpacing = (-0.4).sp)
-                Spacer(Modifier.weight(1f))
-                if (events.isNotEmpty()) TextButton(onClick = onActivity) { Text("View all") }
-            }
-        }
-        if (events.isEmpty()) {
             item {
                 Box(Modifier.padding(horizontal = 20.dp)) {
-                    Cie076EmptyState("No call activity yet", withPhoneIcon = true)
+                    Cie076Card(container = androidx.compose.ui.graphics.Color(0xFFF0F7FF)) {
+                        Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                            Column(Modifier.weight(1f)) {
+                                Text("CIE Shield", fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                                Spacer(Modifier.height(3.dp))
+                                Text(
+                                    if (callRole) cieText("on_device_on") else cieText("enable_android_screening"),
+                                    color = Cie076Colors.Muted,
+                                    fontSize = 13.sp
+                                )
+                            }
+                            Cie076Toggle(callRole) { enabled ->
+                                if (enabled && !callRole) cie076RequestCallRole(context)?.let(roleLauncher::launch)
+                            }
+                        }
+                        Spacer(Modifier.height(18.dp))
+                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Cie076MetricTile(blockedCount.toString(), cieText("blocked"), Modifier.weight(1f))
+                            Cie076MetricTile(events.size.toString(), cieText("calls"), Modifier.weight(1f))
+                        }
+                    }
                 }
             }
-        } else {
-            items(events.take(3), key = { "${it.timestamp}-${it.companyName}-${it.blocked}" }) {
-                Box(Modifier.padding(horizontal = 20.dp)) { Cie076ActivityRow(it) }
+            item {
+                Row(
+                    Modifier.fillMaxWidth().padding(horizontal = 20.dp),
+                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                ) {
+                    Text(cieText("recent"), fontSize = 23.sp, fontWeight = FontWeight.Bold, letterSpacing = (-0.4).sp)
+                    Spacer(Modifier.weight(1f))
+                    if (events.isNotEmpty()) TextButton(onClick = onActivity) { Text(cieText("view_all")) }
+                }
+            }
+            if (events.isEmpty()) {
+                item {
+                    Box(Modifier.padding(horizontal = 20.dp)) {
+                        Cie076EmptyState(cieText("no_call_activity"), withPhoneIcon = true)
+                    }
+                }
+            } else {
+                items(events.take(3), key = { "${it.timestamp}-${it.companyName}-${it.blocked}" }) {
+                    Box(Modifier.padding(horizontal = 20.dp)) { Cie076ActivityRow(it) }
+                }
             }
         }
     }
