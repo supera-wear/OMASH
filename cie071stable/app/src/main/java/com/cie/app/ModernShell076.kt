@@ -61,7 +61,7 @@ internal fun CieWhiteWordmark() {
     Image(
         painter = painterResource(R.drawable.cie_wordmark_official),
         contentDescription = "CIE Company Identity Engine",
-        modifier = Modifier.width(170.dp).height(61.dp),
+        modifier = Modifier.width(144.dp).height(52.dp),
         contentScale = ContentScale.Fit
     )
 }
@@ -71,14 +71,19 @@ internal fun CieDarkWordmark() {
     Image(
         painter = painterResource(R.drawable.cie_wordmark_official),
         contentDescription = "CIE Company Identity Engine",
-        modifier = Modifier.width(154.dp).height(55.dp),
+        modifier = Modifier.width(144.dp).height(52.dp),
         contentScale = ContentScale.Fit,
         colorFilter = ColorFilter.tint(Cie076Colors.Text)
     )
 }
 
 @Composable
-internal fun Cie076Hero(active: Boolean, loading: Boolean, onSettings: () -> Unit) {
+private fun Cie076UnifiedBanner(
+    title: String,
+    subtitle: String,
+    active: Boolean,
+    onSettings: () -> Unit
+) {
     Box(
         Modifier
             .fillMaxWidth()
@@ -89,7 +94,7 @@ internal fun Cie076Hero(active: Boolean, loading: Boolean, onSettings: () -> Uni
                 shape = RoundedCornerShape(bottomStart = 30.dp, bottomEnd = 30.dp)
             )
             .statusBarsPadding()
-            .padding(start = 20.dp, end = 20.dp, top = 12.dp, bottom = 20.dp)
+            .padding(start = 20.dp, end = 20.dp, top = 10.dp, bottom = 20.dp)
     ) {
         Column {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -115,7 +120,7 @@ internal fun Cie076Hero(active: Boolean, loading: Boolean, onSettings: () -> Uni
                     )
                 }
             }
-            Spacer(Modifier.height(20.dp))
+            Spacer(Modifier.height(18.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
                     Modifier
@@ -133,11 +138,7 @@ internal fun Cie076Hero(active: Boolean, loading: Boolean, onSettings: () -> Uni
                 Spacer(Modifier.width(14.dp))
                 Column {
                     Text(
-                        when {
-                            loading -> "CIE Shield is updating"
-                            active -> "CIE Shield is ready"
-                            else -> "CIE Shield needs setup"
-                        },
+                        title,
                         color = Color.White,
                         fontSize = 23.sp,
                         fontWeight = FontWeight.Bold,
@@ -145,7 +146,7 @@ internal fun Cie076Hero(active: Boolean, loading: Boolean, onSettings: () -> Uni
                     )
                     Spacer(Modifier.height(2.dp))
                     Text(
-                        if (active) "Your phone is protected" else "Enable Call Shield to finish setup",
+                        subtitle,
                         color = Color.White.copy(alpha = 0.84f),
                         fontSize = 14.sp
                     )
@@ -153,6 +154,30 @@ internal fun Cie076Hero(active: Boolean, loading: Boolean, onSettings: () -> Uni
             }
         }
     }
+}
+
+@Composable
+internal fun Cie076Hero(active: Boolean, loading: Boolean, onSettings: () -> Unit) {
+    Cie076UnifiedBanner(
+        title = when {
+            loading -> "CIE Shield is updating"
+            active -> "CIE Shield is ready"
+            else -> "CIE Shield needs setup"
+        },
+        subtitle = if (active) "Your phone is protected" else "Enable Call Shield to finish setup",
+        active = active,
+        onSettings = onSettings
+    )
+}
+
+@Composable
+internal fun Cie076PageHero(title: String, onSettings: () -> Unit) {
+    Cie076UnifiedBanner(
+        title = title,
+        subtitle = "Your phone is protected",
+        active = true,
+        onSettings = onSettings
+    )
 }
 
 @Composable

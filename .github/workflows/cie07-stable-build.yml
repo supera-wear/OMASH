@@ -36,6 +36,9 @@ jobs:
       - name: Install Android API 36
         run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
 
+      - name: Apply 0.7.9 unified banner polish
+        run: python3 cie071stable/apply_ui_polish.py
+
       - name: Verify Stable permission contract
         run: |
           MANIFEST=cie071stable/app/src/main/AndroidManifest.xml
@@ -71,7 +74,7 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: CIE-Shield-0.7.9-UI-Polish-APK
+          name: CIE-Shield-0.7.9-Unified-Banner-APK
           path: cie071stable/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 3
