@@ -17,6 +17,7 @@ data class MessageIdentitySignal(
     val companyName: String,
     val confidence: Double,
     val verified: Boolean = false,
+    val networkAttested: Boolean = false,
     val category: String = "",
     val entityType: String = "",
     val purpose: String = "unknown",
@@ -53,8 +54,6 @@ object MessageShieldEngine {
         val identity = identityNetwork.resolve(senderType, normalizedSender)
         val assessment = CieTrustEngine.assessMessage(identity, normalizedSender, body, kind)
 
-        // Verified official government communication is always allowed. A sender that
-        // merely claims to be government does NOT receive this bypass.
         if (assessment.verifiedGovernment) {
             return MessageDecision(
                 senderType = senderType,
@@ -71,8 +70,8 @@ object MessageShieldEngine {
             )
         }
 
-        // Fraud / impersonation has priority over content type. A scammer saying
-        // "verification code" must not be automatically trusted as SECURITY.
+        // Scam and impersonation signals take priority over message labels. A scammer
+        // cannot become trusted merely by writing "OTP" or "security code".
         if (assessment.threat == CieTrustEngine.ThreatLevel.SCAM) {
             return MessageDecision(
                 senderType = senderType,
@@ -89,9 +88,8 @@ object MessageShieldEngine {
             )
         }
 
-        // CIE can identify strong commercial intent even when the sender has not yet
-        // been mapped to a company. This is intentionally stricter than the old
-        // fail-open marketing behavior, while security/transactional messages remain.
+        // Strong commercial intent can be recognized even before CIE has mapped the
+        // sender to a company. Necessary communication remains allowed by default.
         if (identity == null) {
             val strongMarketing = kind == MessageKind.MARKETING && assessment.commercialIntent >= STRONG_COMMERCIAL_INTENT
             return MessageDecision(
@@ -145,8 +143,6 @@ object MessageShieldEngine {
                 commercialIntent = assessment.commercialIntent
             )
 
-        // Necessary messages are preserved unless the trust engine already identified
-        // a scam/impersonation above.
         if (kind == MessageKind.SECURITY || kind == MessageKind.TRANSACTIONAL || kind == MessageKind.SERVICE) {
             return MessageDecision(
                 senderType = senderType,
