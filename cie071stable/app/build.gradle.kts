@@ -19,8 +19,8 @@ android {
         applicationId = "com.cie.app.stable079"
         minSdk = 29
         targetSdk = 36
-        versionCode = 18
-        versionName = "0.8.0"
+        versionCode = 19
+        versionName = "0.8.1"
         buildConfigField("String", "CIE_API_BASE_URL", "\"$cieApiBaseUrl\"")
         buildConfigField("String", "CIE_IDENTITY_BASE_URL", "\"$cieIdentityBaseUrl\"")
     }
