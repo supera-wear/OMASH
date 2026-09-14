@@ -44,7 +44,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.json.JSONObject
-import java.util.Locale
 import java.util.UUID
 
 /**
@@ -198,22 +197,19 @@ class CieSmsDeliverReceiver : BroadcastReceiver() {
     }
 }
 
-/**
- * ROLE_SMS requires an MMS delivery receiver. Full MMS decoding/downloading is not
- * enabled in this beta; the receiver records a local warning instead of pretending
- * that an attachment was safely classified.
- */
+/** ROLE_SMS requires an MMS receiver. Full MMS parsing is intentionally deferred. */
 class CieMmsDeliverReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != Telephony.Sms.Intents.WAP_PUSH_DELIVER_ACTION || !CieSmsRole.isHeld(context)) return
+        val language = CieLanguageStore.resolve(CieLanguageStore.selection(context))
         val message = CieShieldedMessage(
             id = UUID.randomUUID().toString(),
             sender = "MMS",
-            body = CieSmsI18n.text(CieLanguageStore.resolve(CieLanguageStore.selection(context)), "mms_beta_body"),
+            body = CieSmsI18n.text(language, "mms_beta_body"),
             companyName = null,
             kind = MessageKind.UNKNOWN,
             quarantined = false,
-            reason = CieSmsI18n.text(CieLanguageStore.resolve(CieLanguageStore.selection(context)), "mms_beta_reason"),
+            reason = CieSmsI18n.text(language, "mms_beta_reason"),
             timestamp = System.currentTimeMillis()
         )
         CieMessageStore(context).add(message)
@@ -227,12 +223,8 @@ class CieRespondViaMessageService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent != null && CieSmsRole.isHeld(this) && checkSelfPermission(Manifest.permission.SEND_SMS) == PackageManager.PERMISSION_GRANTED) {
             val recipient = intent.data?.schemeSpecificPart.orEmpty().substringBefore('?')
-            val body = intent.getStringExtra(Intent.EXTRA_TEXT)
-                ?: intent.getStringExtra("sms_body")
-                ?: ""
-            if (recipient.isNotBlank() && body.isNotBlank()) {
-                runCatching { sendSms(recipient, body) }
-            }
+            val body = intent.getStringExtra(Intent.EXTRA_TEXT) ?: intent.getStringExtra("sms_body") ?: ""
+            if (recipient.isNotBlank() && body.isNotBlank()) runCatching { sendSms(recipient, body) }
         }
         stopSelf(startId)
         return START_NOT_STICKY
@@ -262,18 +254,9 @@ object CieMessageNotifier {
         }
 
         val language = CieLanguageStore.resolve(CieLanguageStore.selection(context))
-        val title = if (message.quarantined) {
-            CieSmsI18n.text(language, "notification_quarantined")
-        } else {
-            CieSmsI18n.text(language, "notification_message")
-        }
+        val title = if (message.quarantined) CieSmsI18n.text(language, "notification_quarantined") else CieSmsI18n.text(language, "notification_message")
         val openIntent = Intent(context, MessageShieldLiveActivity::class.java)
-        val pendingIntent = PendingIntent.getActivity(
-            context,
-            0,
-            openIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
+        val pendingIntent = PendingIntent.getActivity(context, 0, openIntent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
         val builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             Notification.Builder(context, if (message.quarantined) CHANNEL_QUARANTINE else CHANNEL_MESSAGES)
         } else {
@@ -322,9 +305,7 @@ private fun MessageShieldLiveScreen(activity: ComponentActivity) {
         refresh++
     }
 
-    val messages = remember(refresh, showQuarantine) {
-        store.all().filter { it.quarantined == showQuarantine }
-    }
+    val messages = remember(refresh, showQuarantine) { store.all().filter { it.quarantined == showQuarantine } }
 
     Cie076Theme {
         Column(Modifier.fillMaxSize().background(Cie076Colors.Background)) {
@@ -362,16 +343,8 @@ private fun MessageShieldLiveScreen(activity: ComponentActivity) {
 
                 item {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        FilterChip(
-                            selected = !showQuarantine,
-                            onClick = { showQuarantine = false },
-                            label = { Text(CieSmsI18n.compose("inbox")) }
-                        )
-                        FilterChip(
-                            selected = showQuarantine,
-                            onClick = { showQuarantine = true },
-                            label = { Text(CieSmsI18n.compose("quarantine")) }
-                        )
+                        FilterChip(selected = !showQuarantine, onClick = { showQuarantine = false }, label = { Text(CieSmsI18n.compose("inbox")) })
+                        FilterChip(selected = showQuarantine, onClick = { showQuarantine = true }, label = { Text(CieSmsI18n.compose("quarantine")) })
                         Spacer(Modifier.weight(1f))
                         TextButton(onClick = { refresh++ }) { Text(CieSmsI18n.compose("refresh")) }
                     }
@@ -425,6 +398,7 @@ class CieSmsComposeActivity : ComponentActivity() {
 @Composable
 private fun CieComposeMessageScreen(activity: ComponentActivity, data: Uri?) {
     val initialRecipient = data?.schemeSpecificPart.orEmpty().substringBefore('?')
+    val language = LocalCieLanguage.current
     var recipient by rememberSaveable { mutableStateOf(initialRecipient) }
     var body by rememberSaveable { mutableStateOf(activity.intent?.getStringExtra("sms_body") ?: activity.intent?.getStringExtra(Intent.EXTRA_TEXT).orEmpty()) }
     var status by remember { mutableStateOf<String?>(null) }
@@ -437,14 +411,14 @@ private fun CieComposeMessageScreen(activity: ComponentActivity, data: Uri?) {
                 OutlinedTextField(body, { body = it }, Modifier.fillMaxWidth(), label = { Text(CieSmsI18n.compose("message")) }, minLines = 5)
                 Cie076PrimaryButton(CieSmsI18n.compose("send"), recipient.isNotBlank() && body.isNotBlank(), Modifier.fillMaxWidth()) {
                     status = runCatching {
-                        check(CieSmsRole.isHeld(activity)) { CieSmsI18n.text(LocalCieLanguage.current, "must_be_default") }
-                        check(activity.checkSelfPermission(Manifest.permission.SEND_SMS) == PackageManager.PERMISSION_GRANTED) { CieSmsI18n.text(LocalCieLanguage.current, "sms_permission_missing") }
+                        check(CieSmsRole.isHeld(activity)) { CieSmsI18n.text(language, "must_be_default") }
+                        check(activity.checkSelfPermission(Manifest.permission.SEND_SMS) == PackageManager.PERMISSION_GRANTED) { CieSmsI18n.text(language, "sms_permission_missing") }
                         val manager = SmsManager.getDefault()
                         val parts = manager.divideMessage(body)
                         if (parts.size > 1) manager.sendMultipartTextMessage(recipient, null, ArrayList(parts), null, null)
                         else manager.sendTextMessage(recipient, null, body, null, null)
-                        CieSmsI18n.text(LocalCieLanguage.current, "sent")
-                    }.getOrElse { it.message ?: CieSmsI18n.text(LocalCieLanguage.current, "send_failed") }
+                        CieSmsI18n.text(language, "sent")
+                    }.getOrElse { it.message ?: CieSmsI18n.text(language, "send_failed") }
                 }
                 status?.let { Text(it, color = Cie076Colors.Muted) }
             }
