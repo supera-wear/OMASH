@@ -1,4 +1,4 @@
-name: CIE Shield 0.8.3 Contact Coverage Android Build
+name: CIE Shield 0.8.4 Clean Install Android Build
 
 on:
   push:
@@ -36,13 +36,19 @@ jobs:
       - name: Install Android API 36
         run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
 
+      - name: Restore persistent beta signing key
+        run: |
+          base64 --decode cie071stable/cie-test-signing.b64 > cie071stable/cie-test-signing.jks
+          test -s cie071stable/cie-test-signing.jks
+          keytool -list -keystore cie071stable/cie-test-signing.jks -storepass CIE-Test-084-Only -alias cieTest >/dev/null
+
       - name: Validate unified banner polish
         run: python3 cie071stable/apply_ui_polish.py
 
-      - name: Prepare 0.8.3 UI
+      - name: Prepare 0.8.4 UI
         run: python3 cie071stable/apply_v080.py
 
-      - name: Verify Message Shield and contact coverage contract
+      - name: Verify Message Shield and install-fix contract
         run: |
           MANIFEST=cie071stable/app/src/main/AndroidManifest.xml
           DEBUG_MANIFEST=cie071stable/app/src/debug/AndroidManifest.xml
@@ -60,9 +66,13 @@ jobs:
           grep -q 'android.telecom.CallScreeningService' "$MANIFEST"
           grep -q 'android:allowBackup="false"' "$MANIFEST"
           grep -q 'android:usesCleartextTraffic="false"' "$MANIFEST"
+          grep -q 'cie_shield_app_icon_v2' "$MANIFEST"
           grep -q 'android.permission.READ_CONTACTS' "$DEBUG_MANIFEST"
           ! grep -q 'READ_SMS' "$MANIFEST"
           ! grep -q 'READ_CALL_LOG' "$MANIFEST"
+          grep -q 'applicationId = "com.cie.app.stable084"' cie071stable/app/build.gradle.kts
+          grep -q 'versionCode = 22' cie071stable/app/build.gradle.kts
+          grep -q 'versionName = "0.8.4"' cie071stable/app/build.gradle.kts
 
       - name: Verify trust, localization and coverage sources
         run: |
@@ -80,7 +90,7 @@ jobs:
           grep -q 'CieLanguage.DUTCH' cie071stable/app/src/main/java/com/cie/app/CieLocalization.kt
           grep -q 'CieLanguage.ENGLISH' cie071stable/app/src/main/java/com/cie/app/CieLocalization.kt
 
-      - name: Build CIE Shield 0.8.3 APK
+      - name: Build CIE Shield 0.8.4 APK
         working-directory: cie071stable
         run: gradle :app:assembleDebug --stacktrace -PCIE_API_BASE_URL=https://br-sparkling-dream-b1q8x3n5-cieapi.compute.c-5.eu-central-1.aws.neon.tech -PCIE_IDENTITY_BASE_URL=https://br-sparkling-dream-b1q8x3n5-cieidentity.compute.c-5.eu-central-1.aws.neon.tech
 
@@ -92,10 +102,12 @@ jobs:
           test -s "$APK"
           unzip -t "$APK" >/dev/null
           BADGING="$($AAPT2 dump badging "$APK")"
-          echo "$BADGING" | grep -q "package: name='com.cie.app.stable079' versionCode='21' versionName='0.8.3'"
+          echo "$BADGING" | grep -q "package: name='com.cie.app.stable084' versionCode='22' versionName='0.8.4'"
           echo "$BADGING" | grep -q "application-label:'CIE Shield'"
           test "$(echo "$BADGING" | grep -c '^launchable-activity:')" -eq 1
           "$APKSIGNER" verify --verbose --print-certs "$APK"
+          CERT="$($APKSIGNER verify --print-certs "$APK")"
+          echo "$CERT" | grep -qi 'A7:40:FB:A6:21:3F:42:A9:24:C2:E0:33:26:B8:DB:9B:BB:99:60:80:CF:1F:55:1E:32:55:AD:C5:B3:DF:6E:7B'
           PERMS="$($AAPT2 dump permissions "$APK")"
           echo "$PERMS" | grep -q 'android.permission.RECEIVE_SMS'
           echo "$PERMS" | grep -q 'android.permission.SEND_SMS'
@@ -108,7 +120,7 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: CIE-Shield-0.8.3-Contact-Call-Coverage-APK
+          name: CIE-Shield-0.8.4-Clean-Install-Fixed-APK
           path: cie071stable/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 3
