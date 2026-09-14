@@ -16,16 +16,19 @@ if 'CieContactCoverageCard()' not in secondary_text:
         raise SystemExit("CIE contact coverage insertion point missing")
     secondary_text = secondary_text.replace(marker, replacement, 1)
 
-secondary_text = secondary_text.replace('CIE Shield 0.8.2', 'CIE Shield 0.8.3')
+secondary_text = secondary_text.replace('CIE Shield 0.8.2', 'CIE Shield 0.8.4')
+secondary_text = secondary_text.replace('CIE Shield 0.8.3', 'CIE Shield 0.8.4')
 secondary.write_text(secondary_text, encoding="utf-8")
 
-if 'CIE Shield 0.8.3' not in secondary_text:
-    raise SystemExit("CIE Shield 0.8.3 UI version label missing")
-if 'versionCode = 21' not in build_text or 'versionName = "0.8.3"' not in build_text:
-    raise SystemExit("CIE Shield 0.8.3 Gradle version missing")
+if 'CIE Shield 0.8.4' not in secondary_text:
+    raise SystemExit("CIE Shield 0.8.4 UI version label missing")
+if 'versionCode = 22' not in build_text or 'versionName = "0.8.4"' not in build_text:
+    raise SystemExit("CIE Shield 0.8.4 Gradle version missing")
+if 'applicationId = "com.cie.app.stable084"' not in build_text:
+    raise SystemExit("CIE Shield stable084 clean-install package missing")
 if 'CieSmsI18n.compose("live_desc")' not in secondary_text:
     raise SystemExit("CIE live privacy copy missing")
 if 'CieContactCoverageCard()' not in secondary_text:
     raise SystemExit("CIE contact-call coverage card missing")
 
-print("Prepared CIE Shield 0.8.3 contact-call coverage UI")
+print("Prepared CIE Shield 0.8.4 clean-install fix")
