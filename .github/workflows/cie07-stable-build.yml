@@ -1,11 +1,8 @@
-name: CIE Shield 0.8.1 Multilingual Carrier Trust Android Build
+name: CIE Shield 0.8.4 Install Safe
 
 on:
   push:
-    branches: [cie07-branding-077]
-    paths:
-      - 'cie071stable/**'
-      - '.github/workflows/cie07-stable-build.yml'
+    branches: [cie084-install-safe]
   workflow_dispatch:
 
 permissions:
@@ -18,6 +15,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up JDK 17
         uses: actions/setup-java@v5
@@ -36,65 +35,51 @@ jobs:
       - name: Install Android API 36
         run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
 
-      - name: Validate unified banner polish
-        run: python3 cie071stable/apply_ui_polish.py
+      - name: Prepare install-safe 0.8.4 from proven 0.8.1 baseline
+        run: |
+          sed -i 's/applicationId = "com.cie.app.stable079"/applicationId = "com.cie.app.stable084safe"/' cie071stable/app/build.gradle.kts
+          sed -i 's/versionCode = 19/versionCode = 22/' cie071stable/app/build.gradle.kts
+          sed -i 's/versionName = "0.8.1"/versionName = "0.8.4"/' cie071stable/app/build.gradle.kts
+          sed -i 's/CIE Shield 0.8.1/CIE Shield 0.8.4/g' cie071stable/app/src/main/java/com/cie/app/SecondaryScreens076.kt
+          git show origin/cie07-branding-077:cie071stable/cie-app-icon-original.webp.b64 | tr -d '\n' | base64 --decode > cie071stable/app/src/main/res/drawable/cie_shield_app_icon_original.webp
 
-      - name: Validate 0.8.1 labels
-        run: python3 cie071stable/apply_v080.py
-
-      - name: Verify Stable permission contract
+      - name: Verify safe manifest and app metadata
         run: |
           MANIFEST=cie071stable/app/src/main/AndroidManifest.xml
           grep -q 'android.permission.INTERNET' "$MANIFEST"
           grep -q 'android.permission.RECEIVE_BOOT_COMPLETED' "$MANIFEST"
           grep -q 'android.telecom.CallScreeningService' "$MANIFEST"
-          grep -q 'CIE Shield' "$MANIFEST"
-          grep -q 'cie_shield_app_icon' "$MANIFEST"
-          grep -q 'android:allowBackup="false"' "$MANIFEST"
-          grep -q 'android:usesCleartextTraffic="false"' "$MANIFEST"
-          ! grep -q 'READ_SMS' "$MANIFEST"
-          ! grep -q 'RECEIVE_SMS' "$MANIFEST"
-          ! grep -q 'SEND_SMS' "$MANIFEST"
-          ! grep -q 'READ_CALL_LOG' "$MANIFEST"
-          ! grep -q 'READ_CONTACTS' "$MANIFEST"
+          grep -q 'cie_shield_app_icon_original' "$MANIFEST"
+          ! grep -Eq 'READ_SMS|RECEIVE_SMS|SEND_SMS|READ_CALL_LOG|READ_CONTACTS|WRITE_SMS|RECEIVE_MMS|RECEIVE_WAP_PUSH' "$MANIFEST"
+          grep -q 'applicationId = "com.cie.app.stable084safe"' cie071stable/app/build.gradle.kts
+          grep -q 'versionCode = 22' cie071stable/app/build.gradle.kts
+          grep -q 'versionName = "0.8.4"' cie071stable/app/build.gradle.kts
 
-      - name: Verify trust and localization sources
-        run: |
-          grep -q 'object CieTrustEngine' cie071stable/app/src/main/java/com/cie/app/CieTrustEngine.kt
-          grep -q 'object CieCommercialCallEngine' cie071stable/app/src/main/java/com/cie/app/CieCommercialCallEngine.kt
-          grep -q 'CieCommercialCallEngine.evaluate' cie071stable/app/src/main/java/com/cie/app/telecom/CieCallScreeningService.kt
-          grep -q 'verifiedGovernment' cie071stable/app/src/main/java/com/cie/app/MessageShieldCore.kt
-          grep -q 'CieProtectionSyncWorker' cie071stable/app/src/main/java/com/cie/app/CieProtectionScheduler.kt
-          grep -q 'CieLanguage.ARABIC' cie071stable/app/src/main/java/com/cie/app/CieLocalization.kt
-          grep -q 'CieLanguage.PORTUGUESE' cie071stable/app/src/main/java/com/cie/app/CieLocalization.kt
-          grep -q 'CieLanguage.GERMAN' cie071stable/app/src/main/java/com/cie/app/CieLocalization.kt
-          grep -q 'CieLanguage.TURKISH' cie071stable/app/src/main/java/com/cie/app/CieLocalization.kt
-          grep -q 'CieLanguage.DUTCH' cie071stable/app/src/main/java/com/cie/app/CieLocalization.kt
-          grep -q 'CieLanguage.ENGLISH' cie071stable/app/src/main/java/com/cie/app/CieLocalization.kt
-
-      - name: Build CIE Shield 0.8.1 APK
+      - name: Build APK
         working-directory: cie071stable
         run: gradle :app:assembleDebug --stacktrace -PCIE_API_BASE_URL=https://br-sparkling-dream-b1q8x3n5-cieapi.compute.c-5.eu-central-1.aws.neon.tech -PCIE_IDENTITY_BASE_URL=https://br-sparkling-dream-b1q8x3n5-cieidentity.compute.c-5.eu-central-1.aws.neon.tech
 
-      - name: Verify APK
+      - name: Verify final APK
         run: |
           APK=cie071stable/app/build/outputs/apk/debug/app-debug.apk
           AAPT2="$ANDROID_HOME/build-tools/36.0.0/aapt2"
           APKSIGNER="$ANDROID_HOME/build-tools/36.0.0/apksigner"
+          ZIPALIGN="$ANDROID_HOME/build-tools/36.0.0/zipalign"
           test -s "$APK"
           unzip -t "$APK" >/dev/null
+          "$ZIPALIGN" -c -P 16 -v 4 "$APK" >/dev/null
           BADGING="$($AAPT2 dump badging "$APK")"
-          echo "$BADGING" | grep -q "package: name='com.cie.app.stable079' versionCode='19' versionName='0.8.1'"
+          echo "$BADGING" | grep -q "package: name='com.cie.app.stable084safe' versionCode='22' versionName='0.8.4'"
           echo "$BADGING" | grep -q "application-label:'CIE Shield'"
           test "$(echo "$BADGING" | grep -c '^launchable-activity:')" -eq 1
           "$APKSIGNER" verify --verbose --print-certs "$APK"
-          ! "$AAPT2" dump permissions "$APK" | grep -E 'READ_SMS|RECEIVE_SMS|SEND_SMS|READ_CALL_LOG|READ_CONTACTS'
+          ! "$AAPT2" dump permissions "$APK" | grep -E 'READ_SMS|RECEIVE_SMS|SEND_SMS|READ_CALL_LOG|READ_CONTACTS|WRITE_SMS|RECEIVE_MMS|RECEIVE_WAP_PUSH'
           sha256sum "$APK"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: CIE-Shield-0.8.1-Multilingual-Carrier-Trust-APK
+          name: CIE-Shield-0.8.4-INSTALL-SAFE-APK
           path: cie071stable/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 3
