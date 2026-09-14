@@ -23,7 +23,10 @@ import kotlinx.coroutines.launch
 class MessageShieldLabActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent { MessageShieldLab(this) }
+        setContent {
+            val selection = remember { CieLanguageStore.selection(this) }
+            CieLocalizedContent(selection) { MessageShieldLab(this) }
+        }
     }
 }
 
@@ -47,20 +50,17 @@ private fun MessageShieldLab(activity: ComponentActivity) {
     var body by rememberSaveable { mutableStateOf("Size özel %25 indirim kampanyası. Hemen yararlanın.") }
     var result by remember { mutableStateOf<MessageDecision?>(null) }
     var cachedCount by remember { mutableIntStateOf(identityNetwork.cachedCount()) }
-    var status by remember { mutableStateOf(if (identityNetwork.isFresh()) "Identity Network ready" else "Identity Network needs sync") }
+    var statusKey by remember { mutableStateOf(if (identityNetwork.isFresh()) "identity_ready" else "identity_needs_sync") }
     var syncing by remember { mutableStateOf(false) }
 
     fun syncNetwork() {
         scope.launch {
             syncing = true
             runCatching { identityNetwork.sync() }
-                .onSuccess {
-                    cachedCount = it
-                    status = "Identity Network synced"
-                }
+                .onSuccess { cachedCount = it; statusKey = "identity_synced" }
                 .onFailure {
                     cachedCount = identityNetwork.cachedCount()
-                    status = if (cachedCount > 0) "Using cached identities" else "Identity Network unavailable"
+                    statusKey = if (cachedCount > 0) "using_cached" else "identity_unavailable"
                 }
             syncing = false
         }
@@ -77,51 +77,38 @@ private fun MessageShieldLab(activity: ComponentActivity) {
             onSurface = LabColors.Text
         )
     ) {
-        Box(
-            Modifier.fillMaxSize().background(LabColors.Background).safeDrawingPadding()
-        ) {
+        Column(Modifier.fillMaxSize().background(LabColors.Background)) {
+            Cie076PageHero(cieText("message_lab")) { activity.finish() }
             Column(
-                Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
+                Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(24.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.weight(1f)) {
-                        Text("Message Shield Lab", fontSize = 30.sp, fontWeight = FontWeight.Bold)
-                        Text("CIE 0.7.5 Identity Network", color = LabColors.Muted, fontSize = 13.sp)
-                    }
-                    TextButton(onClick = { activity.finish() }) { Text("Close") }
-                }
-
                 FlatLabCard {
-                    Text(status, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                    Text(cieText(statusKey), fontSize = 18.sp, fontWeight = FontWeight.Bold)
                     Spacer(Modifier.height(4.dp))
-                    Text("$cachedCount verified identities cached locally", color = LabColors.Muted, fontSize = 12.sp)
+                    Text(cieText("verified_cached", cachedCount), color = LabColors.Muted, fontSize = 12.sp)
                     Spacer(Modifier.height(10.dp))
                     OutlinedButton(
                         onClick = { syncNetwork() },
                         enabled = !syncing,
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(14.dp)
-                    ) { Text(if (syncing) "Syncing…" else "Sync identity network") }
+                    ) { Text(if (syncing) cieText("syncing") else cieText("sync_identity")) }
                 }
 
                 FlatLabCard {
-                    Text("Permission-free simulation", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                    Text(cieText("permission_free"), fontSize = 20.sp, fontWeight = FontWeight.Bold)
                     Spacer(Modifier.height(6.dp))
-                    Text(
-                        "This lab does not read your SMS. Sender identities come from CIE's verified backend cache; message content stays on this phone.",
-                        color = LabColors.Muted,
-                        lineHeight = 20.sp
-                    )
+                    Text(cieText("permission_free_desc"), color = LabColors.Muted, lineHeight = 20.sp)
                 }
 
                 FlatLabCard {
-                    Text("Test message", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                    Text(cieText("test_message"), fontSize = 20.sp, fontWeight = FontWeight.Bold)
                     Spacer(Modifier.height(12.dp))
                     OutlinedTextField(
                         value = sender,
                         onValueChange = { sender = it; result = null },
-                        label = { Text("Sender ID or phone number") },
+                        label = { Text(cieText("sender_or_phone")) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         shape = RoundedCornerShape(16.dp)
@@ -129,13 +116,13 @@ private fun MessageShieldLab(activity: ComponentActivity) {
                     val first = identityNetwork.cachedSignals().firstOrNull { it.signalType == "sender_id" || it.signalType == "phone" || it.signalType == "short_code" }
                     if (first != null) {
                         TextButton(onClick = { sender = first.normalizedValue; result = null }) {
-                            Text("Use cached identity: ${first.companyName}")
+                            Text(cieText("use_cached_identity", first.companyName))
                         }
                     }
                     OutlinedTextField(
                         value = body,
                         onValueChange = { body = it; result = null },
-                        label = { Text("Message") },
+                        label = { Text(cieText("message")) },
                         modifier = Modifier.fillMaxWidth(),
                         minLines = 4,
                         shape = RoundedCornerShape(16.dp)
@@ -143,21 +130,15 @@ private fun MessageShieldLab(activity: ComponentActivity) {
                     Spacer(Modifier.height(10.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedButton(
-                            onClick = {
-                                body = "Size özel %25 indirim kampanyası. Hemen yararlanın."
-                                result = null
-                            },
+                            onClick = { body = "Size özel %25 indirim kampanyası. Hemen yararlanın."; result = null },
                             modifier = Modifier.weight(1f),
                             shape = RoundedCornerShape(14.dp)
-                        ) { Text("Marketing") }
+                        ) { Text(cieText("marketing")) }
                         OutlinedButton(
-                            onClick = {
-                                body = "Güvenlik doğrulama mesajı."
-                                result = null
-                            },
+                            onClick = { body = "Güvenlik doğrulama mesajı."; result = null },
                             modifier = Modifier.weight(1f),
                             shape = RoundedCornerShape(14.dp)
-                        ) { Text("Security") }
+                        ) { Text(cieText("security")) }
                     }
                     Spacer(Modifier.height(10.dp))
                     Button(
@@ -166,15 +147,15 @@ private fun MessageShieldLab(activity: ComponentActivity) {
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(14.dp),
                         elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp, pressedElevation = 0.dp)
-                    ) { Text("Run identity test") }
+                    ) { Text(cieText("run_identity_test")) }
                 }
 
                 result?.let { decision ->
                     FlatLabCard {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Column(Modifier.weight(1f)) {
-                                Text(decision.companyName ?: "Unknown company", fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                                Text(decision.companyId ?: "No company ID match", color = LabColors.Muted, fontSize = 11.sp)
+                                Text(decision.companyName ?: cieText("unknown_company"), fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                                Text(decision.companyId ?: cieText("no_company_match"), color = LabColors.Muted, fontSize = 11.sp)
                             }
                             Surface(
                                 color = if (decision.blocked) Color(0xFFFFECEC) else Color(0xFFEAF8F1),
@@ -183,7 +164,7 @@ private fun MessageShieldLab(activity: ComponentActivity) {
                                 tonalElevation = 0.dp
                             ) {
                                 Text(
-                                    if (decision.blocked) "BLOCK" else "ALLOW",
+                                    if (decision.blocked) cieText("block") else cieText("allow"),
                                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
                                     color = if (decision.blocked) LabColors.Red else LabColors.Green,
                                     fontWeight = FontWeight.Bold,
@@ -194,23 +175,19 @@ private fun MessageShieldLab(activity: ComponentActivity) {
                         Spacer(Modifier.height(14.dp))
                         HorizontalDivider(color = LabColors.Border)
                         Spacer(Modifier.height(12.dp))
-                        LabDetail("Sender type", decision.senderType)
-                        LabDetail("Normalized", decision.normalizedSender.ifBlank { "—" })
-                        LabDetail("Message type", decision.kind.name.lowercase().replaceFirstChar { it.uppercase() })
-                        LabDetail("Identity confidence", decision.identityConfidence?.let { "${(it * 100).toInt()}%" } ?: "Not matched")
+                        LabDetail(cieText("sender_type"), decision.senderType)
+                        LabDetail(cieText("normalized"), decision.normalizedSender.ifBlank { "—" })
+                        LabDetail(cieText("message_type"), decision.kind.name.lowercase().replaceFirstChar { it.uppercase() })
+                        LabDetail(cieText("identity_confidence"), decision.identityConfidence?.let { "${(it * 100).toInt()}%" } ?: cieText("not_matched"))
                         Spacer(Modifier.height(8.dp))
                         Text(decision.reason, color = LabColors.Muted, lineHeight = 20.sp)
                     }
                 }
 
                 FlatLabCard {
-                    Text("Company-wide policy", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                    Text(cieText("company_policy"), fontSize = 18.sp, fontWeight = FontWeight.Bold)
                     Spacer(Modifier.height(6.dp))
-                    Text(
-                        "Verified phone numbers, sender IDs and short codes can point to one company ID. Block the company once and every trusted identity inherits the same marketing policy.",
-                        color = LabColors.Muted,
-                        lineHeight = 20.sp
-                    )
+                    Text(cieText("company_policy_desc"), color = LabColors.Muted, lineHeight = 20.sp)
                 }
             }
         }
