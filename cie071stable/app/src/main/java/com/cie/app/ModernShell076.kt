@@ -1,5 +1,6 @@
 package com.cie.app
 
+import android.app.role.RoleManager
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -20,6 +21,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -61,7 +63,7 @@ internal fun CieWhiteWordmark() {
     Image(
         painter = painterResource(R.drawable.cie_wordmark_official),
         contentDescription = "CIE Company Identity Engine",
-        modifier = Modifier.width(144.dp).height(52.dp),
+        modifier = Modifier.width(128.dp).height(46.dp),
         contentScale = ContentScale.Fit
     )
 }
@@ -71,7 +73,7 @@ internal fun CieDarkWordmark() {
     Image(
         painter = painterResource(R.drawable.cie_wordmark_official),
         contentDescription = "CIE Company Identity Engine",
-        modifier = Modifier.width(144.dp).height(52.dp),
+        modifier = Modifier.width(128.dp).height(46.dp),
         contentScale = ContentScale.Fit,
         colorFilter = ColorFilter.tint(Cie076Colors.Text)
     )
@@ -129,7 +131,7 @@ private fun Cie076UnifiedBanner(
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        Icons.Rounded.CheckCircle,
+                        if (active) Icons.Rounded.CheckCircle else Icons.Rounded.Shield,
                         contentDescription = null,
                         tint = Color.White,
                         modifier = Modifier.size(29.dp)
@@ -172,10 +174,17 @@ internal fun Cie076Hero(active: Boolean, loading: Boolean, onSettings: () -> Uni
 
 @Composable
 internal fun Cie076PageHero(title: String, onSettings: () -> Unit) {
+    val context = LocalContext.current
+    val roleManager = context.getSystemService(RoleManager::class.java)
+    val active = roleManager?.let {
+        it.isRoleAvailable(RoleManager.ROLE_CALL_SCREENING) &&
+            it.isRoleHeld(RoleManager.ROLE_CALL_SCREENING)
+    } ?: false
+
     Cie076UnifiedBanner(
         title = title,
-        subtitle = "Your phone is protected",
-        active = true,
+        subtitle = if (active) "Your phone is protected" else "Enable Call Shield to finish setup",
+        active = active,
         onSettings = onSettings
     )
 }
