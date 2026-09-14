@@ -12,13 +12,8 @@
 
         <activity
             android:name=".MessageShieldLabActivity"
-            android:exported="true"
-            android:label="CIE Shield Lab">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
+            android:exported="false"
+            android:label="CIE Shield Lab" />
 
         <activity android:name=".MainActivity" android:exported="false" />
 
