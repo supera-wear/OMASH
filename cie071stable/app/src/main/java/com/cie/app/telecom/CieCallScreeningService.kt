@@ -2,18 +2,23 @@ package com.cie.app.telecom
 
 import android.telecom.Call
 import android.telecom.CallScreeningService
+import com.cie.app.CieTrustEngine
 import com.cie.app.StableRepository
 
 /**
- * Local-only decision path.
- * Identity resolves the caller to a company; the user's company policy decides block/allow.
- * Unknown, stale or ambiguous identities always fail open.
+ * Local-first decision path.
+ * Android binds this service when CIE holds ROLE_CALL_SCREENING, even when the UI
+ * is not open. The decision is kept local so it can return well inside Android's
+ * five-second screening deadline.
  */
 class CieCallScreeningService : CallScreeningService() {
     override fun onScreenCall(callDetails: Call.Details) {
         val number = callDetails.handle?.schemeSpecificPart.orEmpty()
         val repo = StableRepository(applicationContext)
-        val decision = repo.decideCall(number)
+
+        // Existing company policy decision + the trust layer. Verified government
+        // identities are never blocked; verified fraud/scam identities are blocked.
+        val decision = CieTrustEngine.hardenCall(repo.decideCall(number))
 
         runCatching {
             repo.recordCallEvent(
