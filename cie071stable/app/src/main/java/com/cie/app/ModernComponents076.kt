@@ -26,7 +26,7 @@ enum class ModernScreen076 { SHIELD, BLOCKED, ACTIVITY, SETTINGS, REPORT }
 internal fun Cie076BackBar(title: String, onBack: () -> Unit) {
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         IconButton(onClick = onBack) {
-            Icon(Icons.Rounded.ArrowBack, contentDescription = "Back", tint = Cie076Colors.Text)
+            Icon(Icons.Rounded.ArrowBack, contentDescription = cieText("back"), tint = Cie076Colors.Text)
         }
         Spacer(Modifier.width(4.dp))
         Text(title, fontWeight = FontWeight.Bold, fontSize = 20.sp)
@@ -89,7 +89,7 @@ internal fun Cie076CompanyCard(company: CompanyRow, onToggle: (CompanyRow, Boole
                     Text(company.name, fontSize = 17.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     if (company.verified) {
                         Spacer(Modifier.width(8.dp))
-                        Text("VERIFIED", color = Cie076Colors.Blue, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                        Text(cieText("verified"), color = Cie076Colors.Blue, fontSize = 9.sp, fontWeight = FontWeight.Bold)
                     }
                 }
                 Spacer(Modifier.height(4.dp))
@@ -107,10 +107,10 @@ internal fun Cie076ActivityRow(event: CallEvent) {
             Box(Modifier.size(10.dp).background(if (event.blocked) Cie076Colors.Red else Cie076Colors.Green, RoundedCornerShape(99.dp)))
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
-                Text(event.companyName ?: "Unknown caller", fontWeight = FontWeight.Bold)
+                Text(event.companyName ?: cieText("unknown_caller"), fontWeight = FontWeight.Bold)
                 Text(cie076ShortDate(event.timestamp), color = Cie076Colors.Muted, fontSize = 11.sp)
             }
-            Text(if (event.blocked) "Blocked" else "Allowed", color = if (event.blocked) Cie076Colors.Red else Cie076Colors.Green, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+            Text(if (event.blocked) cieText("blocked_state") else cieText("allowed"), color = if (event.blocked) Cie076Colors.Red else Cie076Colors.Green, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
         }
     }
 }
@@ -126,7 +126,7 @@ internal fun Cie076EmptyState(text: String, withPhoneIcon: Boolean = false) {
                 Spacer(Modifier.width(14.dp))
                 Column {
                     Text(text, fontWeight = FontWeight.SemiBold, color = Cie076Colors.Muted)
-                    Text("Blocked and recent calls will appear here.", color = Cie076Colors.Muted, fontSize = 12.sp)
+                    Text(cieText("activity_empty_hint"), color = Cie076Colors.Muted, fontSize = 12.sp)
                 }
             }
         } else {
