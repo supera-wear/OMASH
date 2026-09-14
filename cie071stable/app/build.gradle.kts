@@ -16,17 +16,34 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.cie.app.stable079"
+        applicationId = "com.cie.app.stable085"
         minSdk = 29
         targetSdk = 36
-        versionCode = 19
-        versionName = "0.8.1"
+        versionCode = 23
+        versionName = "0.8.5"
         buildConfigField("String", "CIE_API_BASE_URL", "\"$cieApiBaseUrl\"")
         buildConfigField("String", "CIE_IDENTITY_BASE_URL", "\"$cieIdentityBaseUrl\"")
     }
 
+    signingConfigs {
+        create("cieBeta") {
+            storeFile = rootProject.file("cie-test-signing.jks")
+            storePassword = "CIE-Test-084-Only"
+            keyAlias = "cieTest"
+            keyPassword = "CIE-Test-084-Only"
+            enableV1Signing = true
+            enableV2Signing = true
+            enableV3Signing = true
+            enableV4Signing = false
+        }
+    }
+
     buildTypes {
+        getByName("debug") {
+            signingConfig = signingConfigs.getByName("cieBeta")
+        }
         getByName("release") {
+            signingConfig = signingConfigs.getByName("cieBeta")
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(
