@@ -33,9 +33,9 @@ class CieCallScreeningService : CallScreeningService() {
             else -> "Carrier not verified"
         }
 
-        // STIR verification is treated as transport evidence, not as identity by itself.
-        // A passed result can promote an already verified CIE identity to network-attested.
-        // A failed result is a strong spoof signal and must never whitelist a displayed name.
+        // STIR verification is transport evidence, not identity by itself.
+        // PASSED can promote an already verified CIE identity to network-attested.
+        // FAILED is treated as a strong spoof signal and never whitelists a display name.
         val runtimeIdentity = cachedIdentity?.copy(
             networkAttested = verificationStatus == Connection.VERIFICATION_STATUS_PASSED,
             riskScore = if (verificationStatus == Connection.VERIFICATION_STATUS_FAILED) {
@@ -64,21 +64,22 @@ class CieCallScreeningService : CallScreeningService() {
             baseDecision
         }
 
-        val reason = when {
-            verificationStatus == Connection.VERIFICATION_STATUS_FAILED -> "Possible caller-ID spoofing detected by the carrier"
-            runtimeIdentity?.entityType.equals("government", true) && verificationStatus == Connection.VERIFICATION_STATUS_PASSED -> "Verified government identity and carrier verification passed"
-            runtimeIdentity != null && decision.block -> "Verified company identity matched a blocked policy"
-            runtimeIdentity != null -> "Verified company identity matched"
-            else -> "No verified company identity available"
+        val activityLabel = buildString {
+            append(decision.label)
+            append(" · ")
+            append(carrierLabel)
+            when {
+                verificationStatus == Connection.VERIFICATION_STATUS_FAILED -> append(" · spoof risk")
+                runtimeIdentity?.entityType.equals("government", true) && verificationStatus == Connection.VERIFICATION_STATUS_PASSED -> append(" · government verified")
+                runtimeIdentity != null -> append(" · identity matched")
+            }
         }
 
         runCatching {
             repo.recordCallEvent(
-                companyName = decision.label,
+                companyName = activityLabel,
                 blocked = decision.block,
-                confidence = decision.resolution?.confidence ?: runtimeIdentity?.confidence,
-                verification = carrierLabel,
-                reason = reason
+                confidence = decision.resolution?.confidence ?: runtimeIdentity?.confidence
             )
         }
 
