@@ -9,7 +9,7 @@ import java.net.HttpURLConnection
 import java.net.URL
 
 class IdentityNetworkStore(context: Context) {
-    private val prefs = context.applicationContext.getSharedPreferences("cie_identity_network_v1", Context.MODE_PRIVATE)
+    private val prefs = context.applicationContext.getSharedPreferences("cie_identity_network_v2", Context.MODE_PRIVATE)
 
     suspend fun sync(): Int = withContext(Dispatchers.IO) {
         val root = request("/v1/identities")
@@ -22,14 +22,27 @@ class IdentityNetworkStore(context: Context) {
             val normalized = item.optString("normalized_value")
             val companyId = item.optString("company_id")
             val companyName = item.optString("company_name")
-            val confidence = item.optDouble("confidence", 0.0)
+            val confidence = item.optDouble("confidence", 0.0).coerceIn(0.0, 1.0)
             if (type !in ALLOWED_TYPES || normalized.isBlank() || companyId.isBlank() || companyName.isBlank()) continue
+
+            val verificationStatus = item.optString("verification_status")
+            val verified = item.optBoolean("verified", verificationStatus.equals("verified", true))
+            val category = item.optString("category", "")
+            val entityType = item.optString("entity_type", "")
+            val purpose = item.optString("purpose", "unknown")
+            val riskScore = item.optDouble("risk_score", 0.0).coerceIn(0.0, 1.0)
+
             safe.put(JSONObject().apply {
                 put("signalType", type)
                 put("normalizedValue", normalized)
                 put("companyId", companyId)
                 put("companyName", companyName)
                 put("confidence", confidence)
+                put("verified", verified)
+                put("category", category)
+                put("entityType", entityType)
+                put("purpose", purpose)
+                put("riskScore", riskScore)
             })
         }
         prefs.edit()
@@ -53,7 +66,12 @@ class IdentityNetworkStore(context: Context) {
                 normalizedValue = normalized,
                 companyId = companyId,
                 companyName = companyName,
-                confidence = item.optDouble("confidence", 0.0)
+                confidence = item.optDouble("confidence", 0.0),
+                verified = item.optBoolean("verified", false),
+                category = item.optString("category", ""),
+                entityType = item.optString("entityType", ""),
+                purpose = item.optString("purpose", "unknown"),
+                riskScore = item.optDouble("riskScore", 0.0)
             )
         }
     }.getOrDefault(emptyList())
