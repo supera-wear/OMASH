@@ -27,6 +27,7 @@ class IdentityNetworkStore(context: Context) {
 
             val verificationStatus = item.optString("verification_status")
             val verified = item.optBoolean("verified", verificationStatus.equals("verified", true))
+            val networkAttested = item.optBoolean("network_attested", false)
             val category = item.optString("category", "")
             val entityType = item.optString("entity_type", "")
             val purpose = item.optString("purpose", "unknown")
@@ -39,6 +40,7 @@ class IdentityNetworkStore(context: Context) {
                 put("companyName", companyName)
                 put("confidence", confidence)
                 put("verified", verified)
+                put("networkAttested", networkAttested)
                 put("category", category)
                 put("entityType", entityType)
                 put("purpose", purpose)
@@ -68,6 +70,7 @@ class IdentityNetworkStore(context: Context) {
                 companyName = companyName,
                 confidence = item.optDouble("confidence", 0.0),
                 verified = item.optBoolean("verified", false),
+                networkAttested = item.optBoolean("networkAttested", false),
                 category = item.optString("category", ""),
                 entityType = item.optString("entityType", ""),
                 purpose = item.optString("purpose", "unknown"),
