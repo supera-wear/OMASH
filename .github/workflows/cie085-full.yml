@@ -1,0 +1,60 @@
+name: CIE Shield 0.8.5 Full Beta
+
+on:
+  push:
+    branches: [cie085-release-test]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.13'
+      - uses: android-actions/setup-android@v3
+      - name: Install SDK
+        run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
+      - name: Prepare 0.8.5
+        run: |
+          sed -i 's/com.cie.app.stable084safe/com.cie.app.stable085full/g' cie071stable/app/build.gradle.kts
+          sed -i 's/versionCode = 22/versionCode = 23/g' cie071stable/app/build.gradle.kts
+          sed -i 's/versionName = "0.8.4"/versionName = "0.8.5"/g' cie071stable/app/build.gradle.kts
+          sed -i -E 's/CIE Shield 0\.8\.[0-9]+/CIE Shield 0.8.5/g' cie071stable/app/src/main/java/com/cie/app/SecondaryScreens076.kt
+          tr -d '\n' < cie071stable/cie-app-icon-original.webp.b64 | base64 --decode > cie071stable/app/src/main/res/drawable/cie_shield_app_icon_original.webp
+      - name: Build
+        working-directory: cie071stable
+        run: gradle :app:assembleDebug --stacktrace
+      - name: Verify
+        run: |
+          APK=cie071stable/app/build/outputs/apk/debug/app-debug.apk
+          AAPT2="$ANDROID_HOME/build-tools/36.0.0/aapt2"
+          APKSIGNER="$ANDROID_HOME/build-tools/36.0.0/apksigner"
+          ZIPALIGN="$ANDROID_HOME/build-tools/36.0.0/zipalign"
+          test -s "$APK"
+          unzip -t "$APK" >/dev/null
+          "$ZIPALIGN" -c -P 16 -v 4 "$APK" >/dev/null
+          BADGING="$($AAPT2 dump badging "$APK")"
+          echo "$BADGING" | grep -q "package: name='com.cie.app.stable085full' versionCode='23' versionName='0.8.5'"
+          "$APKSIGNER" verify --verbose --print-certs "$APK"
+          PERMS="$($AAPT2 dump permissions "$APK")"
+          echo "$PERMS" | grep -q 'android.permission.RECEIVE_SMS'
+          echo "$PERMS" | grep -q 'android.permission.SEND_SMS'
+          echo "$PERMS" | grep -q 'android.permission.READ_CONTACTS'
+          ! echo "$PERMS" | grep -q 'android.permission.READ_CALL_LOG'
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: CIE-Shield-0.8.5-FULL-BETA-APK
+          path: cie071stable/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 3
