@@ -32,9 +32,9 @@ if 'CIE Shield 0.8.4' not in secondary_text:
     raise SystemExit("CIE Shield 0.8.4 UI version label missing")
 if 'versionCode = 22' not in build_text or 'versionName = "0.8.4"' not in build_text:
     raise SystemExit("CIE Shield 0.8.4 Gradle version missing")
-if 'applicationId = "com.cie.app.stable084"' not in build_text:
-    raise SystemExit("CIE Shield stable084 package missing")
+if 'applicationId = "com.cie.app.stable084fresh"' not in build_text:
+    raise SystemExit("CIE Shield fresh-install package missing")
 if 'CieContactCoverageCard()' not in secondary_text:
     raise SystemExit("CIE contact-call coverage card missing")
 
-print("Prepared CIE Shield 0.8.4 with original app icon and compatibility signing")
+print("Prepared CIE Shield 0.8.4 from the known-good 0.8.1 signing/build path with the original app icon")
