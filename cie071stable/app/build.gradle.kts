@@ -16,16 +16,29 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.cie.app.stable079"
+        // Fresh beta package avoids signature conflicts with earlier ephemeral CI debug builds.
+        applicationId = "com.cie.app.stable084"
         minSdk = 29
         targetSdk = 36
-        versionCode = 21
-        versionName = "0.8.3"
+        versionCode = 22
+        versionName = "0.8.4"
         buildConfigField("String", "CIE_API_BASE_URL", "\"$cieApiBaseUrl\"")
         buildConfigField("String", "CIE_IDENTITY_BASE_URL", "\"$cieIdentityBaseUrl\"")
     }
 
+    signingConfigs {
+        create("cieBeta") {
+            storeFile = rootProject.file("cie-test-signing.jks")
+            storePassword = "CIE-Test-084-Only"
+            keyAlias = "cieTest"
+            keyPassword = "CIE-Test-084-Only"
+        }
+    }
+
     buildTypes {
+        getByName("debug") {
+            signingConfig = signingConfigs.getByName("cieBeta")
+        }
         getByName("release") {
             isMinifyEnabled = true
             isShrinkResources = true
