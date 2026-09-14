@@ -1,4 +1,4 @@
-name: CIE Shield 0.8.2 Message Shield Live Android Build
+name: CIE Shield 0.8.3 Contact Coverage Android Build
 
 on:
   push:
@@ -39,12 +39,13 @@ jobs:
       - name: Validate unified banner polish
         run: python3 cie071stable/apply_ui_polish.py
 
-      - name: Prepare 0.8.2 labels
+      - name: Prepare 0.8.3 UI
         run: python3 cie071stable/apply_v080.py
 
-      - name: Verify Message Shield role contract
+      - name: Verify Message Shield and contact coverage contract
         run: |
           MANIFEST=cie071stable/app/src/main/AndroidManifest.xml
+          DEBUG_MANIFEST=cie071stable/app/src/debug/AndroidManifest.xml
           grep -q 'android.permission.INTERNET' "$MANIFEST"
           grep -q 'android.permission.RECEIVE_BOOT_COMPLETED' "$MANIFEST"
           grep -q 'android.permission.RECEIVE_SMS' "$MANIFEST"
@@ -59,11 +60,11 @@ jobs:
           grep -q 'android.telecom.CallScreeningService' "$MANIFEST"
           grep -q 'android:allowBackup="false"' "$MANIFEST"
           grep -q 'android:usesCleartextTraffic="false"' "$MANIFEST"
+          grep -q 'android.permission.READ_CONTACTS' "$DEBUG_MANIFEST"
           ! grep -q 'READ_SMS' "$MANIFEST"
           ! grep -q 'READ_CALL_LOG' "$MANIFEST"
-          ! grep -q 'READ_CONTACTS' "$MANIFEST"
 
-      - name: Verify trust, localization and live SMS sources
+      - name: Verify trust, localization and coverage sources
         run: |
           grep -q 'object CieTrustEngine' cie071stable/app/src/main/java/com/cie/app/CieTrustEngine.kt
           grep -q 'object CieCommercialCallEngine' cie071stable/app/src/main/java/com/cie/app/CieCommercialCallEngine.kt
@@ -71,6 +72,7 @@ jobs:
           grep -q 'verifiedGovernment' cie071stable/app/src/main/java/com/cie/app/MessageShieldCore.kt
           grep -q 'class CieSmsDeliverReceiver' cie071stable/app/src/main/java/com/cie/app/MessageShieldLive.kt
           grep -q 'class MessageShieldLiveActivity' cie071stable/app/src/main/java/com/cie/app/MessageShieldLive.kt
+          grep -q 'fun CieContactCoverageCard' cie071stable/app/src/main/java/com/cie/app/CieContactCoverage.kt
           grep -q 'CieLanguage.ARABIC' cie071stable/app/src/main/java/com/cie/app/CieLocalization.kt
           grep -q 'CieLanguage.PORTUGUESE' cie071stable/app/src/main/java/com/cie/app/CieLocalization.kt
           grep -q 'CieLanguage.GERMAN' cie071stable/app/src/main/java/com/cie/app/CieLocalization.kt
@@ -78,7 +80,7 @@ jobs:
           grep -q 'CieLanguage.DUTCH' cie071stable/app/src/main/java/com/cie/app/CieLocalization.kt
           grep -q 'CieLanguage.ENGLISH' cie071stable/app/src/main/java/com/cie/app/CieLocalization.kt
 
-      - name: Build CIE Shield 0.8.2 APK
+      - name: Build CIE Shield 0.8.3 APK
         working-directory: cie071stable
         run: gradle :app:assembleDebug --stacktrace -PCIE_API_BASE_URL=https://br-sparkling-dream-b1q8x3n5-cieapi.compute.c-5.eu-central-1.aws.neon.tech -PCIE_IDENTITY_BASE_URL=https://br-sparkling-dream-b1q8x3n5-cieidentity.compute.c-5.eu-central-1.aws.neon.tech
 
@@ -90,7 +92,7 @@ jobs:
           test -s "$APK"
           unzip -t "$APK" >/dev/null
           BADGING="$($AAPT2 dump badging "$APK")"
-          echo "$BADGING" | grep -q "package: name='com.cie.app.stable079' versionCode='20' versionName='0.8.2'"
+          echo "$BADGING" | grep -q "package: name='com.cie.app.stable079' versionCode='21' versionName='0.8.3'"
           echo "$BADGING" | grep -q "application-label:'CIE Shield'"
           test "$(echo "$BADGING" | grep -c '^launchable-activity:')" -eq 1
           "$APKSIGNER" verify --verbose --print-certs "$APK"
@@ -99,13 +101,14 @@ jobs:
           echo "$PERMS" | grep -q 'android.permission.SEND_SMS'
           echo "$PERMS" | grep -q 'android.permission.RECEIVE_MMS'
           echo "$PERMS" | grep -q 'android.permission.RECEIVE_WAP_PUSH'
-          ! echo "$PERMS" | grep -E 'READ_SMS|READ_CALL_LOG|READ_CONTACTS'
+          echo "$PERMS" | grep -q 'android.permission.READ_CONTACTS'
+          ! echo "$PERMS" | grep -E 'READ_SMS|READ_CALL_LOG'
           sha256sum "$APK"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: CIE-Shield-0.8.2-Message-Shield-Live-Beta-APK
+          name: CIE-Shield-0.8.3-Contact-Call-Coverage-APK
           path: cie071stable/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 3
