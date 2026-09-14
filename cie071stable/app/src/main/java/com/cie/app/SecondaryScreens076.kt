@@ -39,9 +39,7 @@ internal fun Cie076BlockedScreen(
             contentPadding = PaddingValues(20.dp, 14.dp, 20.dp, 20.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            item {
-                Text(cieText("blocked_desc"), color = Cie076Colors.Muted, lineHeight = 21.sp)
-            }
+            item { Text(cieText("blocked_desc"), color = Cie076Colors.Muted, lineHeight = 21.sp) }
             item {
                 OutlinedTextField(
                     value = query,
@@ -69,9 +67,7 @@ internal fun Cie076ActivityScreen(events: List<CallEvent>, onSettings: () -> Uni
             contentPadding = PaddingValues(20.dp, 14.dp, 20.dp, 20.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            item {
-                Text(cieText("activity_desc"), color = Cie076Colors.Muted, lineHeight = 21.sp)
-            }
+            item { Text(cieText("activity_desc"), color = Cie076Colors.Muted, lineHeight = 21.sp) }
             if (events.isEmpty()) item { Cie076EmptyState(cieText("no_activity")) }
             items(events, key = { "${it.timestamp}-${it.companyName}-${it.blocked}" }) { Cie076ActivityRow(it) }
             if (events.isNotEmpty()) item {
@@ -143,9 +139,7 @@ internal fun Cie076SettingsScreen(
                             Text(
                                 if (languageSelection == CieLanguageStore.SYSTEM) {
                                     "${cieText("language_system")} · ${currentLanguage.nativeName}"
-                                } else {
-                                    currentLanguage.nativeName
-                                }
+                                } else currentLanguage.nativeName
                             )
                         }
                         DropdownMenu(
@@ -198,19 +192,17 @@ internal fun Cie076SettingsScreen(
                 Cie076Card {
                     Text(cieText("message_shield"), fontSize = 20.sp, fontWeight = FontWeight.Bold)
                     Spacer(Modifier.height(6.dp))
-                    Text(
-                        cieText("message_shield_desc"),
-                        color = Cie076Colors.Muted,
-                        lineHeight = 20.sp
-                    )
+                    Text(CieSmsI18n.compose("live_desc"), color = Cie076Colors.Muted, lineHeight = 20.sp)
                     Spacer(Modifier.height(12.dp))
+                    Cie076PrimaryButton(CieSmsI18n.compose("live_title"), true, Modifier.fillMaxWidth()) {
+                        context.startActivity(Intent(context, MessageShieldLiveActivity::class.java))
+                    }
+                    Spacer(Modifier.height(8.dp))
                     OutlinedButton(
                         onClick = { context.startActivity(Intent(context, MessageShieldLabActivity::class.java)) },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(14.dp)
-                    ) {
-                        Text(cieText("open_message_lab"))
-                    }
+                    ) { Text(cieText("open_message_lab")) }
                 }
             }
             item {
@@ -275,7 +267,7 @@ internal fun Cie076SettingsScreen(
                 }
             }
             item {
-                Text("CIE Shield 0.8.1", color = Cie076Colors.Muted, fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp))
+                Text("CIE Shield 0.8.2", color = Cie076Colors.Muted, fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp))
             }
         }
     }
@@ -299,9 +291,7 @@ internal fun Cie076ReportScreen(
             contentPadding = PaddingValues(20.dp, 14.dp, 20.dp, 36.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            item {
-                Text(cieText("report_desc"), color = Cie076Colors.Muted, lineHeight = 20.sp)
-            }
+            item { Text(cieText("report_desc"), color = Cie076Colors.Muted, lineHeight = 20.sp) }
             item {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     listOf("phone" to cieText("phone"), "sender_id" to cieText("sender_id"), "short_code" to cieText("short_code")).forEach { (key, label) ->
